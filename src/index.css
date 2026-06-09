@@ -1,0 +1,639 @@
+@import "tailwindcss";
+
+/* High Density Design Theme Stylesheet Overrides */
+.high-density {
+  /* Map default indigo theme utilities directly into modern enterprise Blue colors */
+  --color-indigo-50: #eff6ff;
+  --color-indigo-100: #dbeafe;
+  --color-indigo-200: #bfdbfe;
+  --color-indigo-300: #93c5fd;
+  --color-indigo-400: #60a5fa;
+  --color-indigo-500: #3b82f6;
+  --color-indigo-600: #2563eb;
+  --color-indigo-700: #1d4ed8;
+  --color-indigo-800: #1e40af;
+  --color-indigo-900: #1e3a8a;
+  --color-indigo-950: #0f172a;
+
+  /* Helper map offsets */
+  --color-indigo-605: #2563eb;
+  --color-indigo-650: #1d4ed8;
+  --color-indigo-750: #1e40af;
+  --color-indigo-150: #eff6ff;
+}
+
+/* Compact layout constraints for extreme high-density reading utility */
+.high-density body {
+  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  background-color: #f8fafc; /* bg-slate-50 */
+}
+
+/* Compress standard multi-column grid gaps */
+.high-density .gap-6 {
+  gap: 0.75rem !important;
+}
+.high-density .gap-4 {
+  gap: 0.5rem !important;
+}
+
+/* Condense standard paddings to build a professional spreadsheet feel */
+.high-density .p-6 {
+  padding: 0.75rem !important;
+}
+.high-density .p-5 {
+  padding: 0.625rem !important;
+}
+.high-density .p-4 {
+  padding: 0.5rem !important;
+}
+.high-density .p-3 {
+  padding: 0.375rem !important;
+}
+.high-density .px-6 {
+  padding-left: 0.75rem !important;
+  padding-right: 0.75rem !important;
+}
+.high-density .py-6 {
+  padding-top: 0.75rem !important;
+  padding-bottom: 0.75rem !important;
+}
+
+/* Stacking space reductions */
+.high-density .space-y-6 > :not([hidden]) ~ :not([hidden]) {
+  margin-top: 0.75rem !important;
+}
+.high-density .space-y-4 > :not([hidden]) ~ :not([hidden]) {
+  margin-top: 0.5rem !important;
+}
+.high-density .space-y-3 > :not([hidden]) ~ :not([hidden]) {
+  margin-top: 0.375rem !important;
+}
+
+/* Slightly sharper borders and small card margins */
+.high-density .rounded-xl {
+  border-radius: 0.375rem !important; /* Shorter border radius matches desktop app density */
+}
+.high-density .rounded-lg {
+  border-radius: 0.25rem !important;
+}
+.high-density .rounded-md {
+  border-radius: 0.2rem !important;
+}
+
+/* Type scaling compression */
+.high-density .text-sm {
+  font-size: 0.75rem !important;
+}
+.high-density .text-xs {
+  font-size: 0.7rem !important;
+}
+.high-density .text-\[10px\] {
+  font-size: 0.65rem !important;
+}
+.high-density .text-base {
+  font-size: 0.8rem !important;
+}
+.high-density .text-lg {
+  font-size: 0.9rem !important;
+}
+.high-density .text-xl {
+  font-size: 1rem !important;
+}
+.high-density .text-2xl {
+  font-size: 1.25rem !important;
+}
+
+/* Inputs, controls, buttons text & padding scaling */
+.high-density select,
+.high-density input,
+.high-density textarea {
+  padding: 0.35rem 0.5rem !important;
+  font-size: 0.7rem !important;
+}
+.high-density button {
+  padding-top: 0.35rem !important;
+  padding-bottom: 0.35rem !important;
+}
+.high-density .py-2\.5 {
+  padding-top: 0.4rem !important;
+  padding-bottom: 0.4rem !important;
+}
+
+/* Make table entries extremely sleek */
+.high-density th, 
+.high-density td {
+  padding: 0.35rem 0.5rem !important;
+  font-size: 0.7rem !important;
+}
+
+/* Control heights for visual bars & lists */
+.high-density .h-16 {
+  height: 3rem !important; /* compress header height */
+}
+.high-density .py-4 {
+  padding-top: 0.5rem !important;
+  padding-bottom: 0.5rem !important;
+}
+.high-density .fixed.inset-y-16 {
+  top: 3rem !important; /* adjust sidebar placement to match top bar height */
+}
+.high-density main {
+  padding-top: 3.5rem !important;
+}
+.high-density .min-h-\[400px\] {
+  min-height: 250px !important;
+}
+.high-density .h-\[500px\] {
+  height: 380px !important;
+}
+.high-density .h-\[400px\] {
+  height: 300px !important;
+}
+.high-density .max-h-\[300px\] {
+  max-h: 200px !important;
+}
+.high-density .max-h-\[350px\] {
+  max-h: 240px !important;
+}
+
+/* Sharp shadows to preserve a neat flat structure */
+.high-density .shadow-md,
+.high-density .shadow-lg,
+.high-density .shadow-sm {
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05) !important;
+}
+
+/* ==========================================
+   GLASS FUTURE (KIOO CHA KIDIGITALI) THEME
+   ========================================== */
+.glass-future {
+  background: radial-gradient(circle at 50% 0%, #1e1b4b, #0f172a, #020617) !important;
+  color: #f8fafc !important;
+}
+
+.glass-future body {
+  background: radial-gradient(circle at 50% 0%, #1e1b4b, #0f172a, #020617) !important;
+  color: #f8fafc !important;
+}
+
+/* Stunning Glass frosted panels with subtle cyber violet border glow */
+.glass-future .bg-white,
+.glass-future .bg-slate-50,
+.glass-future .bg-slate-100/50,
+.glass-future .bg-slate-50/50,
+.glass-future .bg-slate-100,
+.glass-future .bg-slate-200,
+.glass-future .bg-slate-200/50,
+.glass-future .bg-slate-900,
+.glass-future .bg-slate-950,
+.glass-future .bg-gray-50,
+.glass-future .bg-indigo-50,
+.glass-future .bg-blue-50/50,
+.glass-future .bg-slate-105,
+.glass-future .bg-slate-800,
+.glass-future .bg-slate-850,
+.glass-future select,
+.glass-future input,
+.glass-future textarea {
+  background-color: rgba(15, 23, 42, 0.45) !important;
+  backdrop-filter: blur(20px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
+  border: 1px solid rgba(139, 92, 246, 0.2) !important;
+  color: #f1f5f9 !important;
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37), 0 0 1px 1px rgba(255, 255, 255, 0.05) inset !important;
+}
+
+/* Active buttons, cards, list groups */
+.glass-future .bg-blue-50,
+.glass-future .bg-indigo-50/30,
+.glass-future .bg-indigo-950/20,
+.glass-future .bg-slate-100/80,
+.glass-future .bg-slate-800/85,
+.glass-future .bg-emerald-950/40 {
+  background-color: rgba(99, 102, 241, 0.15) !important;
+  border: 1px solid rgba(139, 92, 246, 0.45) !important;
+  backdrop-filter: blur(10px) saturate(150%) !important;
+}
+
+/* Radiant contrast for header tags and display typography */
+.glass-future h1,
+.glass-future h2,
+.glass-future h3,
+.glass-future h4,
+.glass-future strong,
+.glass-future .text-slate-900,
+.glass-future .text-slate-850,
+.glass-future .text-slate-800 {
+  color: #ffffff !important;
+  text-shadow: 0 0 15px rgba(139, 92, 246, 0.6) !important;
+}
+
+.glass-future p,
+.glass-future span,
+.glass-future td,
+.glass-future label,
+.glass-future .text-slate-600,
+.glass-future .text-slate-500,
+.glass-future .text-slate-705,
+.glass-future .text-slate-700 {
+  color: #e2e8f0 !important;
+}
+
+/* Glowing cyber accents for links, prices & icons */
+.glass-future .text-blue-600,
+.glass-future .text-indigo-600,
+.glass-future .text-blue-500,
+.glass-future .text-indigo-700,
+.glass-future .text-indigo-400 {
+  color: #a78bfa !important;
+  text-shadow: 0 0 12px rgba(167, 139, 250, 0.5);
+}
+
+/* Linear neon cyan & purple gradients for primary actions */
+.glass-future .bg-blue-600,
+.glass-future .bg-indigo-600,
+.glass-future .bg-blue-500,
+.glass-future .bg-indigo-700 {
+  background: linear-gradient(135deg, #7c3aed, #06b6d4) !important;
+  border: 1px solid rgba(255, 255, 255, 0.25) !important;
+  color: #ffffff !important;
+  box-shadow: 0 0 20px rgba(124, 58, 237, 0.45) !important;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.4) !important;
+}
+
+.glass-future .bg-blue-600:hover,
+.glass-future .bg-indigo-600:hover,
+.glass-future .bg-indigo-700:hover {
+  background: linear-gradient(135deg, #8b5cf6, #22d3ee) !important;
+  box-shadow: 0 0 25px rgba(139, 92, 246, 0.75) !important;
+}
+
+/* Inputs, Select dropdowns, focus rings and interactive fields */
+.glass-future select:focus,
+.glass-future input:focus,
+.glass-future textarea:focus {
+  border-color: #06b6d4 !important;
+  outline: none !important;
+  box-shadow: 0 0 15px rgba(6, 182, 212, 0.6) !important;
+}
+
+/* Elegant glass tables & transparent rows */
+.glass-future th {
+  background: linear-gradient(180deg, rgba(30, 41, 59, 0.8), rgba(15, 23, 42, 0.9)) !important;
+  border-bottom: 2px solid rgba(139, 92, 246, 0.3) !important;
+  color: #ffffff !important;
+}
+
+.glass-future td {
+  border-color: rgba(255, 255, 255, 0.06) !important;
+}
+
+.glass-future .border-slate-200,
+.glass-future .border-slate-100,
+.glass-future .border-slate-300,
+.glass-future .border-slate-205,
+.glass-future .border-slate-820,
+.glass-future .border {
+  border-color: rgba(139, 92, 246, 0.15) !important;
+}
+
+/* Emerald cyber glows for status chips & secondary success flags */
+.glass-future .bg-emerald-50,
+.glass-future .bg-emerald-100/50,
+.glass-future .bg-emerald-500/10 {
+  background-color: rgba(52, 211, 153, 0.12) !important;
+  border: 1px solid rgba(52, 211, 153, 0.35) !important;
+}
+.glass-future .text-emerald-700,
+.glass-future .text-emerald-600,
+.glass-future .text-emerald-400 {
+  color: #34d399 !important;
+  text-shadow: 0 0 8px rgba(52, 211, 153, 0.4);
+}
+
+/* Neon alerts & warning items */
+.glass-future .bg-amber-50,
+.glass-future .bg-amber-100,
+.glass-future .bg-amber-950/20 {
+  background-color: rgba(245, 158, 11, 0.12) !important;
+  border: 1px solid rgba(245, 158, 11, 0.3) !important;
+}
+.glass-future .text-amber-700,
+.glass-future .text-amber-600,
+.glass-future .text-amber-400 {
+  color: #fbbf24 !important;
+  text-shadow: 0 0 8px rgba(251, 191, 36, 0.3);
+}
+
+/* Glowing Crimson status lines */
+.glass-future .bg-rose-50,
+.glass-future .text-rose-700,
+.glass-future .text-rose-600 {
+  color: #f87171 !important;
+  text-shadow: 0 0 8px rgba(248, 113, 113, 0.3);
+}
+
+/* Styled scrollbar for the dynamic glass view elements */
+.glass-future ::-webkit-scrollbar {
+  width: 6px;
+}
+.glass-future ::-webkit-scrollbar-track {
+  background: rgba(15, 23, 42, 0.2);
+}
+.glass-future ::-webkit-scrollbar-thumb {
+  background: rgba(139, 92, 246, 0.3);
+  border-radius: 999px;
+}
+.glass-future ::-webkit-scrollbar-thumb:hover {
+  background: rgba(139, 92, 246, 0.5);
+}
+
+
+/* =========================================================
+   LUXURY GOLD (DHAHABU YA KIFAHARI) EXECUTIVE THEME Setup
+   ========================================================= */
+.luxury-gold {
+  background: radial-gradient(circle at 50% 0%, #111822, #070a10, #020408) !important;
+  color: #f3f4f6 !important;
+}
+
+.luxury-gold body {
+  background: radial-gradient(circle at 50% 0%, #111822, #070a10, #020408) !important;
+  color: #f3f4f6 !important;
+}
+
+/* Beautiful executive container plates & inputs using premium golden trim and dark obsidian gray backgrounds */
+.luxury-gold .bg-white,
+.luxury-gold .bg-slate-50,
+.luxury-gold .bg-slate-100/50,
+.luxury-gold .bg-slate-50/50,
+.luxury-gold .bg-slate-100,
+.luxury-gold .bg-slate-200,
+.luxury-gold .bg-slate-200/50,
+.luxury-gold .bg-slate-900,
+.luxury-gold .bg-slate-950,
+.luxury-gold .bg-indigo-50,
+.luxury-gold .bg-blue-50/50,
+.luxury-gold .bg-slate-105,
+.luxury-gold .bg-slate-800,
+.luxury-gold .bg-slate-850,
+.luxury-gold select,
+.luxury-gold input,
+.luxury-gold textarea {
+  background-color: rgba(18, 24, 38, 0.85) !important;
+  border: 1px solid rgba(212, 175, 55, 0.3) !important;
+  color: #f3f4f6 !important;
+}
+
+/* Active status rows, highlighted segments and lists */
+.luxury-gold .bg-blue-50,
+.luxury-gold .bg-indigo-50/30,
+.luxury-gold .bg-indigo-950/20,
+.luxury-gold .bg-slate-100/80,
+.luxury-gold .bg-slate-800/85,
+.luxury-gold .bg-emerald-950/40 {
+  background-color: rgba(212, 175, 55, 0.08) !important;
+  border: 1px solid rgba(212, 175, 55, 0.5) !important;
+}
+
+/* High contrast display, headlines, table headers, labels and core labels */
+.luxury-gold h1,
+.luxury-gold h2,
+.luxury-gold h3,
+.luxury-gold h4,
+.luxury-gold strong,
+.luxury-gold .text-slate-900,
+.luxury-gold .text-slate-850,
+.luxury-gold .text-slate-800 {
+  color: #fbbf24 !important; /* bright gold */
+  text-shadow: 0 0 10px rgba(212, 175, 55, 0.35) !important;
+}
+
+.luxury-gold p,
+.luxury-gold span,
+.luxury-gold td,
+.luxury-gold label,
+.luxury-gold .text-slate-700,
+.luxury-gold .text-slate-600,
+.luxury-gold .text-slate-500 {
+  color: #e2e8f0 !important;
+}
+
+/* Rich gold fonts for prices and indices */
+.luxury-gold .text-blue-600,
+.luxury-gold .text-indigo-600,
+.luxury-gold .text-blue-500,
+.luxury-gold .text-indigo-700,
+.luxury-gold .text-indigo-400 {
+  color: #f59e0b !important;
+}
+
+/* Primary golden active buttons */
+.luxury-gold .bg-blue-600,
+.luxury-gold .bg-indigo-600,
+.luxury-gold .bg-blue-500,
+.luxury-gold .bg-indigo-700 {
+  background: linear-gradient(135deg, #7c2d12, #b45309, #d97706) !important;
+  border: 1px solid #fbbf24 !important;
+  color: #ffffff !important;
+  box-shadow: 0 0 15px rgba(217, 119, 6, 0.45) !important;
+}
+
+.luxury-gold .bg-blue-600:hover,
+.luxury-gold .bg-indigo-600:hover,
+.luxury-gold .bg-indigo-700:hover {
+  background: linear-gradient(135deg, #d97706, #fbbf24) !important;
+}
+
+/* Borders and visual dividers styling */
+.luxury-gold .border-slate-205,
+.luxury-gold .border-slate-200,
+.luxury-gold .border-slate-100,
+.luxury-gold .border-slate-300,
+.luxury-gold .border {
+  border-color: rgba(212, 175, 55, 0.22) !important;
+}
+
+
+/* =========================================================
+   NEON CYAN (NURU YA KI-SIRI) CYBER THEME Setup
+   ========================================================= */
+.neon-cyan {
+  background: radial-gradient(circle at 50% 0%, #030712, #020617) !important;
+  color: #e2e8f0 !important;
+}
+
+.neon-cyan body {
+  background: radial-gradient(circle at 50% 0%, #030712, #020617) !important;
+  color: #e2e8f0 !important;
+}
+
+/* Crisp high-contrast futuristic cyber inputs with glowing teal trims */
+.neon-cyan .bg-white,
+.neon-cyan .bg-slate-50,
+.neon-cyan .bg-slate-100/50,
+.neon-cyan .bg-slate-50/50,
+.neon-cyan .bg-slate-100,
+.neon-cyan .bg-slate-200,
+.neon-cyan .bg-slate-200/50,
+.neon-cyan .bg-slate-900,
+.neon-cyan .bg-slate-950,
+.neon-cyan .bg-indigo-50,
+.neon-cyan .bg-blue-50/50,
+.neon-cyan .bg-slate-105,
+.neon-cyan .bg-slate-800,
+.neon-cyan .bg-slate-850,
+.neon-cyan select,
+.neon-cyan input,
+.neon-cyan textarea {
+  background-color: rgba(15, 23, 42, 0.9) !important;
+  border: 1px solid rgba(6, 182, 212, 0.4) !important;
+  color: #f1f5f9 !important;
+}
+
+/* Highlighted rows or active areas */
+.neon-cyan .bg-blue-50,
+.neon-cyan .bg-indigo-50/30,
+.neon-cyan .bg-indigo-950/20,
+.neon-cyan .bg-slate-100/80,
+.neon-cyan .bg-slate-800/85,
+.neon-cyan .bg-emerald-950/40 {
+  background-color: rgba(6, 182, 212, 0.08) !important;
+  border: 1px solid rgba(6, 182, 212, 0.6) !important;
+}
+
+/* Bold glowing headings and labels */
+.neon-cyan h1,
+.neon-cyan h2,
+.neon-cyan h3,
+.neon-cyan h4,
+.neon-cyan strong,
+.neon-cyan .text-slate-900,
+.neon-cyan .text-slate-850,
+.neon-cyan .text-slate-800 {
+  color: #22d3ee !important; /* bright cyan */
+  text-shadow: 0 0 12px rgba(6, 182, 212, 0.45) !important;
+}
+
+.neon-cyan p,
+.neon-cyan span,
+.neon-cyan td,
+.neon-cyan label,
+.neon-cyan .text-slate-700,
+.neon-cyan .text-slate-600,
+.neon-cyan .text-slate-500 {
+  color: #cbd5e1 !important;
+}
+
+/* Cyber text colors for selling and wholesale prices */
+.neon-cyan .text-blue-600,
+.neon-cyan .text-indigo-600,
+.neon-cyan .text-blue-500,
+.neon-cyan .text-indigo-700,
+.neon-cyan .text-indigo-400 {
+  color: #22d3ee !important;
+}
+
+/* Primary neon buttons with bright neon gradient and cyber shadows */
+.neon-cyan .bg-blue-600,
+.neon-cyan .bg-indigo-600,
+.neon-cyan .bg-blue-500,
+.neon-cyan .bg-indigo-700 {
+  background: linear-gradient(135deg, #0f172a, #0891b2, #06b6d4) !important;
+  border: 1px solid #22d3ee !important;
+  color: #ffffff !important;
+  box-shadow: 0 0 15px rgba(6, 182, 212, 0.5) !important;
+}
+
+.neon-cyan .bg-blue-600:hover,
+.neon-cyan .bg-indigo-600:hover,
+.neon-cyan .bg-indigo-700:hover {
+  background: linear-gradient(135deg, #06b6d4, #22d3ee) !important;
+}
+
+.neon-cyan .border-slate-205,
+.neon-cyan .border-slate-200,
+.neon-cyan .border-slate-100,
+.neon-cyan .border-slate-300,
+.neon-cyan .border {
+  border-color: rgba(6, 182, 212, 0.25) !important;
+}
+
+/* ==========================================
+   METADATA PRINTING OVERRIDES
+   ========================================== */
+@media print {
+  /* Hide all application sidebars, navigation panels, action buttons, select fields, and filter headers */
+  aside,
+  nav,
+  header,
+  button,
+  select,
+  input,
+  .no-print,
+  .no-print-area {
+    display: none !important;
+    visibility: hidden !important;
+    height: 0 !important;
+    width: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  /* Strip all default margins, paddings, and sidebar offset positions from main layouts */
+  body, html {
+    background: #ffffff !important;
+    color: #000000 !important;
+    overflow: visible !important;
+    height: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  main {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+    padding-top: 0 !important;
+    margin: 0 !important;
+  }
+
+  /* Make sure the main printable sheet fills the standard paper width cleanly */
+  #printable-area-canvas {
+    display: block !important;
+    visibility: visible !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    border: none !important;
+    box-shadow: none !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    padding: 10mm !important;
+    margin: 0 !important;
+  }
+
+  /* Make sure thermal receipts print elegantly on 80mm roll size */
+  #receipt-printable-canvas {
+    display: block !important;
+    visibility: visible !important;
+    width: 80mm !important;
+    max-width: 80mm !important;
+    border: none !important;
+    box-shadow: none !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    padding: 4mm !important;
+    margin: 0 !important;
+    font-family: monospace !important;
+    font-size: 11px !important;
+  }
+
+  /* Ensure text colors, charts, or borders adjust appropriately */
+  #printable-area-canvas *,
+  #receipt-printable-canvas *,
+  #quotation-printable-canvas *,
+  #financial-statement-canvas * {
+    color: #000000 !important;
+    border-color: #e2e8f0 !important;
+  }
+}
+

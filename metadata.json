@@ -1,0 +1,6 @@
+{
+  "name": "DUKA OS",
+  "description": "DUKA OS - Powered by Dev Tek Innovation. High-density Enterprise-Grade ERP Suite.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
