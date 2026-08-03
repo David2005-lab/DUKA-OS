@@ -265,7 +265,7 @@ export interface AuditLog {
   user: string; // User email or role name
 }
 
-export type ThemeMode = 'light' | 'dark' | 'luxury-gold' | 'neon-cyan' | 'high-density' | 'glass-future';
+export type ThemeMode = 'light' | 'dark' | 'luxury-gold' | 'neon-cyan' | 'high-density' | 'glass-future' | 'emerald-eco' | 'sunset-rose';
 export type LanguageCode = 'EN' | 'SW';
 
 export type PDFTemplateType =
@@ -283,3 +283,42 @@ export type ExcelTemplateType =
   | 'Accounting Report'
   | 'Tax Report'
   | 'Inventory Report';
+
+export interface QRLog {
+  id: string;
+  timestamp: string;
+  transactionId: string;
+  invoiceNumber?: string;
+  type: string;
+  url: string;
+  generatedBy: string;
+}
+
+export interface PrintLog {
+  id: string;
+  timestamp: string;
+  documentId: string;
+  documentTitle: string;
+  printerType: 'A4' | 'Thermal';
+  inkSaver: boolean;
+  triggeredBy: string;
+}
+
+export interface Quotation {
+  id: string;
+  quotationNumber: string;
+  clientName: string;
+  date: string;
+  items: {
+    productName: string;
+    sku: string;
+    qty: number;
+    price: number;
+  }[];
+  pricingType: string;
+  grandTotal: number;
+  salesperson: string;
+  branchId: string;
+}
+
+

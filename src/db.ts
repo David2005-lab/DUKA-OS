@@ -19,7 +19,10 @@ import {
   UserRole,
   InvoiceStatus,
   ThemeMode,
-  LanguageCode
+  LanguageCode,
+  QRLog,
+  Quotation,
+  PrintLog
 } from './types';
 
 // Storage keys
@@ -31,11 +34,14 @@ const KEYS = {
   CUSTOMERS: 'SmartERP_Customers',
   SUPPLIERS: 'SmartERP_Suppliers',
   INVOICES: 'SmartERP_Invoices',
+  QUOTATIONS: 'SmartERP_Quotations',
   TRANSACTIONS: 'SmartERP_Transactions',
   PURCHASES: 'SmartERP_Purchases',
   TRANSFERS: 'SmartERP_Transfers',
   NOTIFICATIONS: 'SmartERP_Notifications',
   AUDIT: 'SmartERP_Audit',
+  QR_LOGS: 'SmartERP_QRLogs',
+  PRINT_LOGS: 'SmartERP_PrintLogs',
   SESSION_USER: 'SmartERP_SessionUser',
   SESSION_USER_ROLE: 'SmartERP_SessionUserRole',
   SESSION_BRANCH: 'SmartERP_SessionBranch',
@@ -56,6 +62,9 @@ const load = <T>(key: string, fallback: T): T => {
 
 const save = <T>(key: string, value: T): void => {
   localStorage.setItem(key, JSON.stringify(value));
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('db-update', { detail: { key } }));
+  }
 };
 
 export const clearAllData = () => {
@@ -75,21 +84,29 @@ const DEFAULT_PROFILE: BusinessConfig = {
   country: 'Tanzania',
   phone: '+255 754 000 111',
   whatsapp: '+255 784 222 333',
-  email: 'info@dukaos.co.tz',
-  website: 'https://dukaos.co.tz',
-  description: 'Modern Retail, Wholesale and Distribution System',
+  email: 'info@devtek.co.tz',
+  website: 'https://devtek.co.tz',
+  description: 'DUKA OS - High-density Enterprise-Grade ERP Suite, Powered by Dev Tek Innovation.',
   logoUrl: '',
   unlimitedBranches: true,
   companyStamp: 'OFFICIAL REGISTERED COMPLIANCE SEAL - DUKA OS',
   qrCodeSeed: 'DUKA-OS-LEDGER-VERIFY',
-  verificationCode: 'LICENSE-DUKA-ERP-999-PRO'
+  verificationCode: 'DUKAOS-DEVTEK-999-PRO'
 };
 
 export const db = {
   // CONFIG & PROFILE
   getProfile: (): BusinessConfig => {
     const p = load<BusinessConfig | null>(KEYS.PROFILE, null);
-    return p ? { ...DEFAULT_PROFILE, ...p } : DEFAULT_PROFILE;
+    const resolved = p ? { ...DEFAULT_PROFILE, ...p } : DEFAULT_PROFILE;
+    if (resolved.name === 'SMART ERP ENTERPRISE' || resolved.name === 'SmartERP' || resolved.name?.includes('SMART ERP')) {
+      resolved.name = 'DUKA OS ENTERPRISE';
+      resolved.companyStamp = 'OFFICIAL REGISTERED COMPLIANCE SEAL - DUKA OS';
+      resolved.email = 'info@devtek.co.tz';
+      resolved.website = 'https://devtek.co.tz';
+      resolved.description = 'DUKA OS - High-density Enterprise-Grade ERP Suite, Powered by Dev Tek Innovation.';
+    }
+    return resolved;
   },
   saveProfile: (profile: BusinessConfig, userEmail: string) => {
     save(KEYS.PROFILE, profile);
@@ -603,9 +620,43 @@ export const db = {
     localStorage.setItem(KEYS.SESSION_BRANCH, branchId);
   },
 
+  // QR CODE LOGS
+  getQRLogs: (): QRLog[] => load<QRLog[]>(KEYS.QR_LOGS, []),
+  addQRLog: (log: Omit<QRLog, 'id' | 'timestamp'>) => {
+    const list = db.getQRLogs();
+    const newLog: QRLog = {
+      ...log,
+      id: `qr-${Date.now()}-${Math.random()}`,
+      timestamp: new Date().toISOString()
+    };
+    list.unshift(newLog);
+    save(KEYS.QR_LOGS, list);
+  },
+
+  // PRINT SYSTEM AUDIT LOGS
+  getPrintLogs: (): PrintLog[] => load<PrintLog[]>(KEYS.PRINT_LOGS, []),
+  addPrintLog: (log: Omit<PrintLog, 'id' | 'timestamp'>) => {
+    const list = db.getPrintLogs();
+    const newLog: PrintLog = {
+      ...log,
+      id: `print-${Date.now()}-${Math.random()}`,
+      timestamp: new Date().toISOString()
+    };
+    list.unshift(newLog);
+    save(KEYS.PRINT_LOGS, list);
+  },
+
+  // QUOTATIONS
+  getQuotations: (): Quotation[] => load<Quotation[]>(KEYS.QUOTATIONS, []),
+  addQuotation: (q: Quotation) => {
+    const list = db.getQuotations();
+    list.unshift(q);
+    save(KEYS.QUOTATIONS, list);
+  },
+
   // THEME & LANGUAGE CONFIGS
-  getThemeMode: (): ThemeMode => (localStorage.getItem(KEYS.THEME_MODE) || 'high-density') as ThemeMode,
-  setThemeMode: (mode: ThemeMode) => localStorage.setItem(KEYS.THEME_MODE, mode),
+  getThemeMode: (): ThemeMode => 'light',
+  setThemeMode: (mode: ThemeMode) => localStorage.setItem(KEYS.THEME_MODE, 'light'),
   getLanguage: (): LanguageCode => (localStorage.getItem(KEYS.LANGUAGE) || 'EN') as LanguageCode,
   setLanguage: (lang: LanguageCode) => localStorage.setItem(KEYS.LANGUAGE, lang)
 };

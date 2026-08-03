@@ -1,5 +1,43 @@
 @import "tailwindcss";
 
+:root {
+  font-family: 'Plus Jakarta Sans', 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  color-scheme: light dark;
+}
+
+body {
+  font-family: 'Plus Jakarta Sans', 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  color: #0f172a;
+  background-color: #f8fafc;
+  line-height: 1.5;
+}
+
+/* Fix low contrast gray text globally */
+.text-slate-400 {
+  color: #64748b !important;
+}
+.dark .text-slate-400 {
+  color: #94a3b8 !important;
+}
+
+.text-slate-500 {
+  color: #475569 !important;
+}
+.dark .text-slate-500 {
+  color: #cbd5e1 !important;
+}
+
+/* Improve input and select focus contrast */
+input, select, textarea {
+  font-family: inherit;
+}
+
+input::placeholder, textarea::placeholder {
+  color: #94a3b8 !important;
+}
+
 /* High Density Design Theme Stylesheet Overrides */
 .high-density {
   /* Map default indigo theme utilities directly into modern enterprise Blue colors */
@@ -161,6 +199,60 @@
 .high-density .shadow-lg,
 .high-density .shadow-sm {
   box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05) !important;
+}
+
+/* ==========================================
+   EMERALD ECO (KIJANI CHA KIASILI / ECO ERP)
+   ========================================== */
+.emerald-eco {
+  background: radial-gradient(circle at 50% 0%, #064e3b, #022c22, #061e17) !important;
+  color: #ecfdf5 !important;
+}
+
+.emerald-eco body {
+  background: radial-gradient(circle at 50% 0%, #064e3b, #022c22, #061e17) !important;
+  color: #ecfdf5 !important;
+}
+
+.emerald-eco .bg-white,
+.emerald-eco .bg-slate-50,
+.emerald-eco .bg-slate-100,
+.emerald-eco .bg-slate-900,
+.emerald-eco .bg-slate-950,
+.emerald-eco select,
+.emerald-eco input,
+.emerald-eco textarea {
+  background-color: rgba(6, 78, 59, 0.45) !important;
+  backdrop-filter: blur(16px) !important;
+  border: 1px solid rgba(16, 185, 129, 0.3) !important;
+  color: #f0fdf4 !important;
+}
+
+/* ==========================================
+   SUNSET ROSE (DHAHABU YA ROSÉ / LUXURY BLUSH)
+   ========================================== */
+.sunset-rose {
+  background: radial-gradient(circle at 50% 0%, #4c0519, #1c050e, #0f0207) !important;
+  color: #fff1f2 !important;
+}
+
+.sunset-rose body {
+  background: radial-gradient(circle at 50% 0%, #4c0519, #1c050e, #0f0207) !important;
+  color: #fff1f2 !important;
+}
+
+.sunset-rose .bg-white,
+.sunset-rose .bg-slate-50,
+.sunset-rose .bg-slate-100,
+.sunset-rose .bg-slate-900,
+.sunset-rose .bg-slate-950,
+.sunset-rose select,
+.sunset-rose input,
+.sunset-rose textarea {
+  background-color: rgba(76, 5, 25, 0.45) !important;
+  backdrop-filter: blur(16px) !important;
+  border: 1px solid rgba(244, 63, 94, 0.3) !important;
+  color: #fff1f2 !important;
 }
 
 /* ==========================================
@@ -588,6 +680,8 @@
     height: auto !important;
     margin: 0 !important;
     padding: 0 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
   }
 
   main {
@@ -616,15 +710,25 @@
     display: block !important;
     visibility: visible !important;
     width: 80mm !important;
+    min-width: 80mm !important;
     max-width: 80mm !important;
     border: none !important;
     box-shadow: none !important;
     background: #ffffff !important;
     color: #000000 !important;
     padding: 4mm !important;
-    margin: 0 !important;
+    margin: 0 auto !important;
     font-family: monospace !important;
     font-size: 11px !important;
+    box-sizing: border-box !important;
+  }
+
+  /* Force all nested components, tables, images and rows to obey the exact 80mm boundary without scaling leaks */
+  #receipt-printable-canvas * {
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+    word-wrap: break-word !important;
+    overflow-wrap: break-word !important;
   }
 
   /* Ensure text colors, charts, or borders adjust appropriately */
@@ -635,5 +739,119 @@
     color: #000000 !important;
     border-color: #e2e8f0 !important;
   }
+
+  /* ----------------- HIGH-DENSITY PAGINATION OPTIMIZATIONS ----------------- */
+  
+  /* Set standard A4 Portrait properties for professional document styling */
+  @page {
+    size: A4 portrait;
+    margin: 15mm 12mm 15mm 12mm !important;
+  }
+
+  /* Prevent elements from breaking mid-signature, seals or barcode/QR sections */
+  .print-avoid-break,
+  .qr-seal-block,
+  .signature-block,
+  .totals-row,
+  .invoice-header,
+  .quotation-header {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  /* Table optimizations for crisp, paginated multi-page layouts */
+  table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    page-break-inside: auto !important;
+  }
+  
+  thead {
+    display: table-header-group !important; /* Forces repeating the table header on multi-page overflows */
+    break-inside: avoid !important;
+  }
+  
+  tfoot {
+    display: table-footer-group !important; /* Repeats table footer consistently */
+    break-inside: avoid !important;
+  }
+
+  tr {
+    page-break-inside: avoid !important; /* Prevents split text rendering over standard paper margin folds */
+    break-inside: avoid !important;
+  }
+
+  td, th {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
 }
+
+/* =========================================================
+   GENERAL THERMAL CANVAS CONTROLLER OUTSIDE PRINT Spooling
+   ========================================================= */
+#receipt-printable-canvas {
+  width: 80mm !important;
+  min-width: 80mm !important;
+  max-width: 80mm !important;
+  box-sizing: border-box !important;
+  word-wrap: break-word !important;
+}
+
+#receipt-printable-canvas * {
+  box-sizing: border-box !important;
+  max-width: 100% !important;
+  word-wrap: break-word !important;
+  overflow-wrap: break-word !important;
+}
+
+/* Custom subtle scrollbar styling to avoid clipping in collapsed sidebar or tables */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.45);
+  border-radius: 9999px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.65);
+}
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(148, 163, 184, 0.45) transparent;
+}
+
+/* Animations for PWA Install Prompt and Modals */
+@keyframes slideUp {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.animate-slide-up {
+  animation: slideUp 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.25s ease-out forwards;
+}
+
 

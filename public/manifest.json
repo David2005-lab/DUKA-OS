@@ -1,0 +1,66 @@
+{
+  "short_name": "DUKA OS",
+  "name": "DUKA OS - Enterprise ERP & Smart POS Suite",
+  "description": "High-density Smart Enterprise ERP & Retail Business Management Platform powered by Dev Tek Innovation. Complete solution for POS, Ledger Accounting, CRM & Inventory Management.",
+  "id": "/",
+  "start_url": "/?source=pwa",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": ["standalone", "minimal-ui", "browser"],
+  "orientation": "any",
+  "background_color": "#0f172a",
+  "theme_color": "#2563eb",
+  "lang": "en",
+  "dir": "ltr",
+  "categories": ["business", "finance", "productivity", "utilities", "sales"],
+  "prefer_related_applications": false,
+  "icons": [
+    {
+      "src": "/icon.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "POS Checkout Terminal",
+      "short_name": "POS Terminal",
+      "description": "Launch quick sales counter and receipt terminal",
+      "url": "/?module=pos",
+      "icons": [{ "src": "/icon.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Inventory & Stock Control",
+      "short_name": "Inventory",
+      "description": "Manage products, stock levels, and reorder alerts",
+      "url": "/?module=inventory",
+      "icons": [{ "src": "/icon.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "General Ledger Accounting",
+      "short_name": "Accounting",
+      "description": "View double-entry ledger transactions and cashflow audit",
+      "url": "/?module=accounting",
+      "icons": [{ "src": "/icon.png", "sizes": "192x192" }]
+    }
+  ]
+}

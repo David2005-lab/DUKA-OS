@@ -13,7 +13,13 @@ import {
   Minus, 
   SlidersHorizontal,
   ArrowRight,
-  Info
+  Info,
+  CheckCircle2,
+  Tag,
+  MapPin,
+  Phone,
+  User,
+  PackageCheck
 } from 'lucide-react';
 import { Product } from '../types';
 import { db } from '../db';
@@ -32,17 +38,23 @@ export default function EcommerceStore({ language, currentBranch }: EcommerceSto
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
   
-  // Cart
+  // Cart state
   const [cart, setCart] = useState<{ product: Product; qty: number }[]>([]);
   const [showCartDrawer, setShowCartDrawer] = useState(false);
+  const [checkedOutSuccess, setCheckedOutSuccess] = useState(false);
 
   // Delivery configuration
   const [clientName, setClientName] = useState('');
   const [clientPhone, setClientPhone] = useState('');
   const [clientAddr, setClientAddr] = useState('');
 
+  const loadProducts = () => {
+    // Only display available positive stock
+    setProducts(db.getProducts().filter((p) => (p.branchStock[currentBranch] ?? 0) > 0));
+  };
+
   useEffect(() => {
-    setProducts(db.getProducts().filter((p) => (p.branchStock[currentBranch] ?? 0) > 0)); // Only display available positive stock
+    loadProducts();
   }, [currentBranch]);
 
   // Filters
@@ -55,12 +67,13 @@ export default function EcommerceStore({ language, currentBranch }: EcommerceSto
 
   // Cart operations
   const addToCart = (product: Product) => {
+    setCheckedOutSuccess(false);
     const existing = cart.find((item) => item.product.id === product.id);
     const branchStockQty = product.branchStock[currentBranch] ?? 0;
 
     if (existing) {
       if (existing.qty + 1 > branchStockQty) {
-        alert(language === 'SW' ? 'Stoki iliyobaki haitoshi!' : 'Not enough warehouse stock available for ecommerce allocation!');
+        alert(language === 'SW' ? 'Samahani! Stoki yetu iliyobaki haitoshi kwa oda hii.' : 'Not enough warehouse stock available for ecommerce allocation!');
         return;
       }
       setCart(cart.map((item) => item.product.id === product.id ? { ...item, qty: item.qty + 1 } : item));
@@ -82,7 +95,7 @@ export default function EcommerceStore({ language, currentBranch }: EcommerceSto
       setCart(cart.filter((item) => item.product.id !== pId));
     } else {
       if (newQty > branchStockQty) {
-        alert(language === 'SW' ? 'Kiwango cha juu cha stoki kimefikiwa!' : 'Requested quantity exceeds available branch reserves!');
+        alert(language === 'SW' ? 'Samahani, umefikia kiwango cha juu cha mzingo kwny stoki yetu.' : 'Requested quantity exceeds available branch reserves!');
         return;
       }
       setCart(cart.map((item) => item.product.id === pId ? { ...item, qty: newQty } : item));
@@ -92,15 +105,15 @@ export default function EcommerceStore({ language, currentBranch }: EcommerceSto
   const handleOnlineCheckout = (e: React.FormEvent) => {
     e.preventDefault();
     if (cart.length === 0 || !clientName || !clientPhone) {
-      alert('Please fill out Client contacts and shopping bag first!');
+      alert(language === 'SW' ? 'Tafadhali ingiza Taarifa za Mteja na Kikapu cha manunuzi!' : 'Please fill out Client contacts and shopping bag first!');
       return;
     }
 
     // Process ecommerce transaction triggers
     const invoiceNum = `ECOMM-${Date.now().toString().substring(5)}`;
     const subTotal = cart.reduce((sum, item) => sum + (item.product.sellingPrice * item.qty), 0);
-    const taxTotal = Math.round(subTotal * 0.18);
-    const gTotal = subTotal + taxTotal;
+    const gTotal = subTotal;
+    const taxTotal = Math.round(gTotal - (gTotal / 1.18));
 
     // Trigger local db decrements directly
     db.completeOnlineOrder({
@@ -108,7 +121,7 @@ export default function EcommerceStore({ language, currentBranch }: EcommerceSto
       orderId: invoiceNum,
       customerName: clientName,
       customerPhone: clientPhone,
-      deliveryAddress: clientAddr,
+      deliveryAddress: clientAddr || 'HQ Depot delivery',
       items: cart.map((i) => ({
         id: i.product.id,
         productName: i.product.name,
@@ -125,60 +138,82 @@ export default function EcommerceStore({ language, currentBranch }: EcommerceSto
     setClientName('');
     setClientPhone('');
     setClientAddr('');
-    setShowCartDrawer(false);
+    setCheckedOutSuccess(true);
     
     // Reload storefront available stock
-    setProducts(db.getProducts().filter((p) => (p.branchStock[currentBranch] ?? 0) > 0));
-    
-    alert(language === 'SW' ? 'Malipo Mtandaoni Yamekamilika! Stoki imepunguzwa salama.' : 'B2B Electronic payment checkout confirmed! Stocks depleted and order placed.');
+    loadProducts();
   };
 
   const cartCount = cart.reduce((sum, item) => sum + item.qty, 0);
   const cartSubtotal = cart.reduce((sum, item) => sum + (item.product.sellingPrice * item.qty), 0);
 
   return (
-    <div className="space-y-6 text-xs relative">
+    <div className="space-y-6 text-xs relative animate-fade-in text-slate-800 dark:text-slate-200">
       
-      {/* Visual B2B ecommerce header banner */}
-      <div className="bg-slate-50 dark:bg-slate-900 border rounded-xl p-4 flex justify-between items-center flex-wrap gap-4">
-        <div>
-          <div className="flex items-center gap-1.5">
-            <ShoppingBag className="h-5 w-5 text-indigo-600 animate-pulse" />
-            <h2 className="text-sm font-extrabold uppercase text-slate-900 dark:text-white leading-none">Smart Business Pro Store</h2>
+      {/* Premium B2B ecommerce header banner */}
+      <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 flex justify-between items-center flex-wrap gap-4 shadow-sm">
+        <div className="flex gap-3 items-center">
+          <div className="h-12 w-12 bg-indigo-650/10 text-indigo-650 dark:text-indigo-400 rounded-xl flex items-center justify-center">
+            <ShoppingBag className="h-6 w-6" />
           </div>
-          <p className="text-[10.5px] text-slate-400 mt-1 font-medium">Customer-facing B2B checkout catalog. Subtracts stocks from corresponding warehouses automatically.</p>
+          <div>
+            <h2 className="text-sm font-serif font-black uppercase text-slate-900 dark:text-white leading-none">
+              {language === 'SW' ? 'Duka la Mtandao na Agizo la Haraka' : 'Smart Digital Order Storefront'}
+            </h2>
+            <p className="text-[10.5px] text-slate-400 mt-1 font-medium leading-normal">
+              {language === 'SW' 
+                ? 'Katalugu ya bidhaa za duka kwa wateja. Kila mauzo yatapunguza stoki moja kwa moja kutoka ghalani.' 
+                : 'Customer-facing B2B checkout catalog. Subtracts stocks from corresponding branch warehouses automatically.'}
+            </p>
+          </div>
         </div>
 
         {/* Floating Cart Button indicator with animation */}
         <button
-          onClick={() => setShowCartDrawer(true)}
-          className="bg-indigo-600 hover:bg-indigo-700 text-white font-black py-2.5 px-4 rounded-xl flex items-center gap-2 shadow-lg leading-none transition-transform active:scale-95"
+          onClick={() => { setCheckedOutSuccess(false); setShowCartDrawer(true); }}
+          className="bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold py-2.5 px-4 rounded-xl flex items-center gap-2 shadow-sm uppercase tracking-wider text-[10px] transition-transform active:scale-95 cursor-pointer shrink-0"
           id="digital-shop-cart-header"
         >
-          <ShoppingCart className="h-4 w-4" />
-          <span>Shopping bag ({cartCount})</span>
+          <ShoppingCart className="h-4.5 w-4.5" />
+          <span>{language === 'SW' ? 'Kikapu chako' : 'Shopping bag'} ({cartCount})</span>
         </button>
       </div>
+
+      {checkedOutSuccess && (
+        <div className="bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-250 rounded-2xl p-4 flex items-center gap-3 animate-fade-in">
+          <CheckCircle2 className="h-6 w-6 text-emerald-600 shrink-0" />
+          <div>
+            <strong className="text-emerald-800 dark:text-emerald-350 uppercase block font-bold text-[11px] select-none">
+              {language === 'SW' ? 'AGIZO LIMESHUGHULIKIWA SALAMA!' : 'ECOMMERCE ORDER COMPLETED SECURELY!'}
+            </strong>
+            <span className="text-slate-500 mt-0.5 block">
+              {language === 'SW' ? 'Oda yako imepokelewa kwenye foleni ya duka na stoki imesasishwa moja kwa moja.' : 'Stocks updated in corresponding branch warehouse ledger. Order logs updated.'}
+            </span>
+          </div>
+        </div>
+      )}
 
       {/* Grid of contents & filters */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 items-start">
         
-        {/* Left Side menu filters */}
+        {/* Left Side menu categories */}
         <div className="space-y-4">
-          <div className="bg-white dark:bg-slate-950 p-4 border rounded-xl space-y-3 shadow-sm">
-            <span className="font-extrabold text-[10px] text-slate-400 uppercase tracking-widest block border-b pb-1">Shop Categories</span>
+          <div className="bg-white dark:bg-slate-950 p-4 border rounded-2xl space-y-3 shadow-sm border-slate-200 dark:border-slate-805">
+            <span className="font-extrabold text-[10px] text-slate-400 uppercase tracking-widest block border-b pb-1 dark:border-slate-800">
+              {language === 'SW' ? 'Makundi ya Bidhaa' : 'Shop Categories'}
+            </span>
             <div className="flex flex-col gap-1">
               {categories.map((cat) => (
                 <button
                   key={cat}
                   onClick={() => setSelectedCategory(cat)}
-                  className={`text-left p-2 rounded-lg font-bold transition-all ${
+                  className={`text-left p-2.5 rounded-lg font-bold transition-all ${
                     selectedCategory === cat
-                      ? 'bg-indigo-50 text-indigo-700 dark:bg-indigo-950/25'
-                      : 'hover:bg-slate-50/50 text-slate-650'
+                      ? 'bg-indigo-600 text-white shadow-sm'
+                      : 'hover:bg-slate-50 dark:hover:bg-slate-900 text-slate-650 dark:text-slate-350'
                   }`}
                 >
-                  {cat === 'All' ? 'View All stocks' : cat}
+                  {cat === 'All' ? (language === 'SW' ? 'Zote Zilizopo Ghalani' : 'View All stocks') : cat}
                 </button>
               ))}
             </div>
@@ -186,7 +221,9 @@ export default function EcommerceStore({ language, currentBranch }: EcommerceSto
 
           <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-3 flex gap-2">
             <Info className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
-            <p className="text-[10.5px] text-amber-900 leading-tight">These listed prices dynamically mirror your core hardware, grocery, or fashion inventory catalogs automatically.</p>
+            <p className="text-[10.5px] text-amber-900 leading-tight">
+              {language === 'SW' ? 'Bei na bidhaa hapa zinaakisi moja kwa moja thamani, kodi na kiwango kilichopo ghalani mwako.' : 'These listed prices dynamically mirror your core hardware, grocery, or fashion inventory catalogs automatically.'}
+            </p>
           </div>
         </div>
 
@@ -195,52 +232,52 @@ export default function EcommerceStore({ language, currentBranch }: EcommerceSto
           
           {/* Search bar */}
           <div className="relative">
-            <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+            <Search className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
             <input
               type="text"
-              placeholder="Search store by Name, Material, SKU, Barcode..."
+              placeholder={language === 'SW' ? 'Tafuta duka kwa Jina la bidhaa au SKU...' : 'Search store by Name, Material, SKU, Barcode...'}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="bg-white dark:bg-slate-950 border w-full rounded-xl pl-9 p-2.5 focus:outline-none focus:ring-1 focus:ring-indigo-600 font-semibold"
+              className="bg-white dark:bg-slate-950 border w-full rounded-2xl pl-9 p-3 focus:outline-none focus:ring-1 focus:ring-indigo-605 font-semibold text-xs border-slate-205 dark:border-slate-800"
             />
           </div>
 
           {filteredProducts.length === 0 ? (
-            <div className="p-12 text-center border bg-white dark:bg-slate-950 rounded-xl text-slate-450">
-              {t.noData}
+            <div className="p-16 text-center border bg-white dark:bg-slate-950 rounded-2xl border-slate-200 dark:border-slate-800 text-slate-400">
+              {language === 'SW' ? 'Hakuna bidhaa inayolingana na ombi lako hivi sasa ghalani.' : 'No matching commercial products available for digital sales. Balance inventory stocks.'}
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredProducts.map((p) => {
                 const stockLeft = p.branchStock[currentBranch] ?? 0;
                 return (
-                  <div key={p.id} className="bg-white dark:bg-slate-950 border border-slate-205 dark:border-slate-800 rounded-xl p-3 flex flex-col justify-between hover:shadow-md transition-all">
+                  <div key={p.id} className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 flex flex-col justify-between hover:shadow-md transition-all">
                     
                     <div>
                       {/* Fake placeholder graphic styled like a minimalist hardware box */}
-                      <div className="bg-slate-50 dark:bg-slate-900/40 rounded-lg aspect-square mb-3 flex flex-col items-center justify-center p-3 text-center border relative overflow-hidden">
-                        <ShoppingBag className="h-10 w-10 text-indigo-400/30 font-light" />
-                        <span className="font-mono text-[9px] uppercase tracking-wider text-slate-400 mt-2 block break-all">{p.sku}</span>
+                      <div className="bg-slate-50 dark:bg-slate-900/30 rounded-xl aspect-square mb-3.5 flex flex-col items-center justify-center p-3 text-center border dark:border-slate-850 relative overflow-hidden">
+                        <ShoppingBag className="h-10 w-10 text-indigo-405/20 font-light" />
+                        <span className="font-mono text-[9px] uppercase tracking-wider text-slate-400 mt-2 block break-all font-black">{p.sku}</span>
                         
                         {/* Status absolute indicator */}
-                        <span className="absolute bottom-2 right-2 px-2 py-0.5 bg-indigo-600/15 text-indigo-650 text-[9.5px] rounded-full font-black">
+                        <span className="absolute bottom-2.5 right-2.5 px-2.5 py-0.5 bg-indigo-600/10 dark:bg-indigo-950 text-indigo-650 dark:text-indigo-400 text-[9px] rounded-full font-black">
                           {stockLeft} {p.unit || 'pcs'} left
                         </span>
                       </div>
 
-                      <span className="text-[10px] uppercase font-bold text-slate-400 block mb-0.5">{p.category}</span>
-                      <strong className="text-slate-850 dark:text-white font-bold text-xs leading-none hover:text-indigo-600">{p.name}</strong>
-                      <p className="text-[10px] text-slate-450 line-clamp-1 mt-1">{p.description || 'Enterprise industrial specifications'}</p>
+                      <span className="text-[10px] uppercase font-black text-slate-400 block mb-1 tracking-wider">{p.category}</span>
+                      <strong className="text-slate-850 dark:text-white font-bold text-xs leading-tight hover:text-indigo-600">{p.name}</strong>
+                      <p className="text-[10px] text-slate-405 line-clamp-1 mt-1 font-medium">{p.description || 'Enterprise industrial specifications'}</p>
                     </div>
 
-                    <div className="mt-4 pt-3 border-t border-slate-50 flex items-center justify-between">
-                      <span className="font-mono font-black text-indigo-750 dark:text-indigo-400 text-xs">TZS {p.sellingPrice.toLocaleString()}</span>
+                    <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-850 flex items-center justify-between">
+                      <span className="font-mono font-black text-indigo-750 dark:text-indigo-450 text-xs">TZS {p.sellingPrice.toLocaleString()}</span>
                       <button
                         onClick={() => addToCart(p)}
-                        className="bg-indigo-600 hover:bg-indigo-700 text-white font-black p-2 py-1.5 rounded-lg flex items-center gap-1 leading-none shadow-sm text-[11px]"
+                        className="bg-indigo-600 hover:bg-indigo-700 text-white font-black p-2 py-1.5 rounded-lg flex items-center gap-1 leading-none shadow-sm text-[10.5px] cursor-pointer"
                       >
                         <Plus className="h-3 w-3" />
-                        <span>Add Bag</span>
+                        <span>{language === 'SW' ? 'Weka' : 'Add Bag'}</span>
                       </button>
                     </div>
 
@@ -256,95 +293,109 @@ export default function EcommerceStore({ language, currentBranch }: EcommerceSto
 
       {/* Slideout Cart Drawer Overlay */}
       {showCartDrawer && (
-        <div className="fixed inset-0 bg-black/60 z-50 flex justify-end animate-fade-in text-xs">
+        <div className="fixed inset-0 bg-black/60 z-50 flex justify-end animate-fade-in text-xs select-none">
           <div className="bg-white dark:bg-slate-950 w-full max-w-md h-full shadow-2xl p-6 flex flex-col justify-between overflow-y-auto">
             
             <div className="space-y-6">
-              <div className="flex justify-between items-center border-b pb-3">
-                <span className="font-extrabold text-sm uppercase text-slate-800 dark:text-white flex items-center gap-1.5">
+              <div className="flex justify-between items-center border-b pb-3 dark:border-slate-850">
+                <span className="font-extrabold text-sm uppercase text-slate-800 dark:text-white flex items-center gap-1.5 font-serif">
                   <ShoppingCart className="h-5 w-5 text-indigo-600" />
-                  Your Shopping Bag
+                  <span>{language === 'SW' ? 'Kikapu Chako cha Oda' : 'Customer Shopping Bag'}</span>
                 </span>
-                <button onClick={() => setShowCartDrawer(false)} className="p-1 hover:bg-slate-100 rounded text-slate-600">
+                <button onClick={() => setShowCartDrawer(false)} className="p-1 hover:bg-slate-100 dark:hover:bg-slate-900 rounded-lg text-slate-400">
                   <X className="h-5 w-5" />
                 </button>
               </div>
 
               {cart.length === 0 ? (
-                <p className="text-center text-slate-400 py-10">Add products to see prices, taxes and check out.</p>
+                <div className="text-center py-20 text-slate-400">
+                  {language === 'SW' ? 'Oda yako haina bidhaa yoyote kwa sasa.' : 'Add products to see prices, taxes and check out.'}
+                </div>
               ) : (
                 <div className="space-y-4">
                   
                   {/* Cart Items list */}
-                  <div className="space-y-2 max-h-[250px] overflow-y-auto pr-1">
+                  <div className="space-y-2 max-h-[190px] overflow-y-auto pr-1">
                     {cart.map((item) => (
-                      <div key={item.product.id} className="p-3 bg-slate-50 rounded-lg border flex justify-between items-center">
+                      <div key={item.product.id} className="p-3 bg-slate-50 dark:bg-slate-900/55 rounded-xl border dark:border-slate-800 flex justify-between items-center">
                         <div className="flex-1 pr-3">
-                          <strong className="text-slate-900 block font-bold leading-tight">{item.product.name}</strong>
-                          <span className="font-mono text-[10px] text-slate-500">TZS {item.product.sellingPrice.toLocaleString()} × {item.qty}</span>
+                          <strong className="text-slate-900 dark:text-white block font-bold leading-tight line-clamp-1">{item.product.name}</strong>
+                          <span className="font-mono text-[10px] text-slate-550 dark:text-slate-400 mt-0.5 block">TZS {item.product.sellingPrice.toLocaleString()} × {item.qty}</span>
                         </div>
                         
                         <div className="flex items-center gap-2">
-                          <button onClick={() => updateCartQty(item.product.id, -1)} className="p-1 border rounded bg-white"><Minus className="h-3 w-3" /></button>
-                          <span className="font-extrabold font-mono">{item.qty}</span>
-                          <button onClick={() => updateCartQty(item.product.id, 1)} className="p-1 border rounded bg-white"><Plus className="h-3 w-3" /></button>
+                          <button onClick={() => updateCartQty(item.product.id, -1)} className="p-1.5 border rounded-lg bg-white dark:bg-slate-800 disabled:opacity-40 cursor-pointer"><Minus className="h-3 w-3" /></button>
+                          <span className="font-extrabold font-mono text-[11px]">{item.qty}</span>
+                          <button onClick={() => updateCartQty(item.product.id, 1)} className="p-1.5 border rounded-lg bg-white dark:bg-slate-800 disabled:opacity-40 cursor-pointer"><Plus className="h-3 w-3" /></button>
                         </div>
                       </div>
                     ))}
                   </div>
 
                   {/* Calculations invoice */}
-                  <div className="bg-slate-50 rounded-xl p-4 space-y-2 border">
-                    <div className="flex justify-between"><span>Bag Subtotal:</span> <span className="font-mono">TZS {cartSubtotal.toLocaleString()}</span></div>
-                    <div className="flex justify-between text-slate-450"><span>Value Added Tax (18% on gross):</span> <span className="font-mono">TZS {(cartSubtotal * 0.18).toLocaleString()}</span></div>
-                    <div className="flex justify-between border-t border-slate-300 font-black text-slate-950 text-sm pt-2">
+                  <div className="bg-slate-50 dark:bg-slate-900/50 rounded-xl p-4 space-y-2 border dark:border-slate-800">
+                    <div className="flex justify-between"><span>Bag Subtotal:</span> <span className="font-mono font-bold">TZS {cartSubtotal.toLocaleString()}</span></div>
+                    <div className="flex justify-between text-slate-450 select-none"><span>Value Added Tax (18% inclusive):</span> <span className="font-mono">TZS {Math.round(cartSubtotal - (cartSubtotal / 1.18)).toLocaleString()}</span></div>
+                    <div className="flex justify-between border-t dark:border-slate-800 border-slate-350 font-black text-slate-950 dark:text-white text-sm pt-2.5">
                       <span>Total Invoice:</span>
-                      <span className="font-mono text-indigo-750">TZS {(cartSubtotal + cartSubtotal * 0.18).toLocaleString()}</span>
+                      <span className="font-mono text-indigo-750 dark:text-indigo-400">TZS {cartSubtotal.toLocaleString()}</span>
                     </div>
                   </div>
 
                   {/* Delivery Info form */}
-                  <form onSubmit={handleOnlineCheckout} className="space-y-3.5 border-t pt-4">
-                    <span className="font-extrabold text-[10px] text-indigo-600 uppercase tracking-widest block">Checkout Delivery Coordinates</span>
+                  <form onSubmit={handleOnlineCheckout} className="space-y-3.5 border-t dark:border-slate-850 pt-4">
+                    <span className="font-extrabold text-[10px] text-indigo-600 uppercase tracking-widest block">
+                      {language === 'SW' ? 'MAHALI NA MAWASILIANO YA DELIVERY' : 'Checkout Delivery Coordinates'}
+                    </span>
                     <div>
-                      <label className="font-bold text-slate-600">Your Full Name *</label>
-                      <input
-                        type="text"
-                        required
-                        value={clientName}
-                        onChange={(e) => setClientName(e.target.value)}
-                        className="w-full bg-slate-50 border p-2 mt-1 rounded-lg"
-                        placeholder="e.g. Salim Swedi"
-                      />
+                      <label className="font-bold text-slate-400 block mb-1">Full Name (Jina Kamili) *</label>
+                      <div className="relative">
+                        <User className="absolute left-2.5 top-2.5 h-4 w-4 text-slate-400" />
+                        <input
+                          type="text"
+                          required
+                          value={clientName}
+                          onChange={(e) => setClientName(e.target.value)}
+                          className="w-full bg-slate-50 dark:bg-slate-950 border pl-8 p-2 rounded-lg font-bold"
+                          placeholder="e.g. Salim Swedi"
+                        />
+                      </div>
                     </div>
                     <div>
-                      <label className="font-bold text-slate-600">Delivery Phone Whatsapp *</label>
-                      <input
-                        type="text"
-                        required
-                        value={clientPhone}
-                        onChange={(e) => setClientPhone(e.target.value)}
-                        className="w-full bg-slate-50 border p-2 mt-1 rounded-lg font-semibold"
-                        placeholder="e.g. +255 712 000 000"
-                      />
+                      <label className="font-bold text-slate-400 block mb-1">WhatsApp Delivery PhoneNo *</label>
+                      <div className="relative">
+                        <Phone className="absolute left-2.5 top-2.5 h-4 w-4 text-slate-400" />
+                        <input
+                          type="text"
+                          required
+                          value={clientPhone}
+                          onChange={(e) => setClientPhone(e.target.value)}
+                          className="w-full bg-slate-50 dark:bg-slate-950 border pl-8 p-2 rounded-lg font-mono font-bold"
+                          placeholder="e.g. 255712345678"
+                        />
+                      </div>
                     </div>
                     <div>
-                      <label className="font-bold text-slate-600">Physical Address Destination</label>
-                      <input
-                        type="text"
-                        value={clientAddr}
-                        onChange={(e) => setClientAddr(e.target.value)}
-                        className="w-full bg-slate-50 border p-2 mt-1 rounded-lg"
-                        placeholder="Cargo Road, Dar es Salaam"
-                      />
+                      <label className="font-bold text-slate-400 block mb-1">Destination Address *</label>
+                      <div className="relative">
+                        <MapPin className="absolute left-2.5 top-2.5 h-4 w-4 text-slate-400" />
+                        <input
+                          type="text"
+                          required
+                          value={clientAddr}
+                          onChange={(e) => setClientAddr(e.target.value)}
+                          className="w-full bg-slate-50 dark:bg-slate-950 border pl-8 p-2 rounded-lg"
+                          placeholder="Cargo Road, Dar es Salaam"
+                        />
+                      </div>
                     </div>
 
                     <button
                       type="submit"
-                      className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-black py-2.5 rounded-lg flex items-center justify-center gap-1.5 shadow-lg shadow-indigo-600/10 leading-none"
+                      className="w-full bg-indigo-605 hover:bg-indigo-700 text-white font-extrabold py-3 rounded-xl flex items-center justify-center gap-1.5 shadow-lg shadow-indigo-600/10 leading-none cursor-pointer uppercase text-[10.5px] tracking-wide"
                     >
-                      <span>Authorize Secure checkout</span>
-                      <ArrowRight className="h-4 w-4" />
+                      <PackageCheck className="h-4.5 w-4.5" />
+                      <span>{language === 'SW' ? 'Thibitisha malipo na Lipa duka' : 'Authorize Secure checkout'}</span>
                     </button>
                   </form>
 
@@ -353,7 +404,7 @@ export default function EcommerceStore({ language, currentBranch }: EcommerceSto
 
             </div>
 
-            <div className="text-center text-[9px] text-slate-400 mt-6 pt-4 border-t uppercase tracking-wider">
+            <div className="text-center text-[9px] text-slate-400 mt-6 pt-4 border-t border-dashed dark:border-slate-800 uppercase tracking-widest">
               Secure Online store checkout - ERP stock synced
             </div>
 

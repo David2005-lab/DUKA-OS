@@ -105,6 +105,43 @@ export default function PriceCatalog({ language, currentBranch, userEmail }: Pri
     setQuotationNumber(`QTN-${Date.now().toString().substring(5)}`);
   }, []);
 
+  useEffect(() => {
+    if (isPdfModalOpen) {
+      const qNum = quotationNumber || 'QTN-TEMP';
+      const selectedList = products.filter(p => selectedProducts[p.id]);
+      const currentQuotaItems = selectedList.length > 0 ? selectedList : products.slice(0, 8);
+      const tot = currentQuotaItems.reduce((sum, item) => sum + (pricingType === 'wholesale' ? (item.wholesalePrice || item.sellingPrice) : item.sellingPrice), 0);
+      const qrUrl = `${window.location.origin}/verify?type=quotation&client=${encodeURIComponent(clientName || 'Cash Customer')}&date=${new Date().toISOString().split('T')[0]}&total=${tot}`;
+      db.addQRLog({
+        transactionId: qNum,
+        type: 'quotation',
+        url: qrUrl,
+        generatedBy: activeOperator || userEmail || 'Catalog Assistant'
+      });
+
+      // Save quotation records persistently for Document Center
+      const existingQuotes = db.getQuotations();
+      if (!existingQuotes.some(q => q.quotationNumber === qNum)) {
+        db.addQuotation({
+          id: `qtn-${Date.now()}`,
+          quotationNumber: qNum,
+          clientName: clientName || 'Cash Customer / Mteja wa Kawaida',
+          date: new Date().toISOString().split('T')[0],
+          items: currentQuotaItems.map(item => ({
+            productName: item.name,
+            sku: item.sku,
+            qty: 1,
+            price: pricingType === 'wholesale' ? (item.wholesalePrice || item.sellingPrice) : item.sellingPrice
+          })),
+          pricingType: pricingType,
+          grandTotal: tot,
+          salesperson: activeOperator || userEmail || 'Catalog Assistant',
+          branchId: currentBranch
+        });
+      }
+    }
+  }, [isPdfModalOpen, quotationNumber, products, selectedProducts, pricingType, clientName, activeOperator, userEmail, currentBranch]);
+
   // Listen to profile / operator updates
   useEffect(() => {
     const handleStorageChange = () => {
@@ -247,7 +284,7 @@ export default function PriceCatalog({ language, currentBranch, userEmail }: Pri
 
   // Inject attachment simulated link directly into the template text area
   const handleInjectAttachment = (name: string) => {
-    const downloadLink = `\n📁 *Kiambatisho kilichojumuishwa:* [${name}] (https://verify.smartbusinesserp.com/download/document-${Date.now().toString(36)})\n`;
+    const downloadLink = `\n📁 *Kiambatisho kilichojumuishwa:* [${name}] (${window.location.origin}/verify?type=download&id=document-${Date.now().toString(36)})\n`;
     setCustomMsg(prev => prev + downloadLink);
     setIsMessageDirty(true);
   };
@@ -1073,7 +1110,7 @@ export default function PriceCatalog({ language, currentBranch, userEmail }: Pri
                 <div className="flex items-center justify-center gap-4 flex-wrap md:flex-nowrap">
                   <div className="flex flex-col items-center justify-center text-center p-2.5 bg-slate-50 dark:bg-slate-900/40 rounded-xl border border-dashed border-slate-200">
                     <QRCodeSVG 
-                      value={`https://dukaos.com/verify?type=quotation&client=${encodeURIComponent(clientName || 'Cash Customer')}&date=${new Date().toISOString().split('T')[0]}&total=${selectedProducts.reduce((sum, item) => sum + (pricingType === 'Retail' ? item.product.retailPrice : item.product.wholesalePrice) * item.qty, 0)}`}
+                      value={`${window.location.origin}/verify?type=quotation&client=${encodeURIComponent(clientName || 'Cash Customer')}&date=${new Date().toISOString().split('T')[0]}&total=${quotationItems.reduce((sum, item) => sum + (pricingType === 'wholesale' ? (item.wholesalePrice || item.sellingPrice) : item.sellingPrice), 0)}`}
                       size={64}
                       level="M"
                       fgColor="#1e1b4b"

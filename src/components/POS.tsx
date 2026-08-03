@@ -19,7 +19,11 @@ import {
   ArrowLeft,
   Coffee,
   Coins,
-  History
+  History,
+  Send,
+  X,
+  FileText,
+  QrCode
 } from 'lucide-react';
 import { Product, POSOrder, Transaction } from '../types';
 import { db } from '../db';
@@ -38,6 +42,11 @@ export default function POS({ language, currentBranch, userEmail }: POSProps) {
   // States
   const [products, setProducts] = useState<Product[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+
+  // WhatsApp states for POS completion receipts
+  const [isWhatsAppPosOpen, setIsWhatsAppPosOpen] = useState(false);
+  const [whatsappPhone, setWhatsappPhone] = useState('');
+  const [whatsappFormat, setWhatsappFormat] = useState<'pdf' | 'summary'>('pdf');
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [cart, setCart] = useState<{ product: Product; quantity: number; discount: number }[]>([]);
   const [taxRate, setTaxRate] = useState(18); // Default 18% VAT
@@ -63,6 +72,13 @@ export default function POS({ language, currentBranch, userEmail }: POSProps) {
 
   const [activeCashier, setActiveCashier] = useState(() => localStorage.getItem('SmartERP_ActiveOperator') || 'Sada Salim');
   const [activeShift, setActiveShift] = useState(() => localStorage.getItem('SmartERP_ActiveShift') || 'Shift ya Asubuhi');
+  const [receiptFooter, setReceiptFooter] = useState(() => {
+    return localStorage.getItem('SmartERP_POSReceiptFooter') || (language === 'SW' ? 'Mrejesho utakaokubaliwa ni wa siku 3 tu ukiwa na risiti halisi. Ahsante!' : 'No refunds or returns accepted without original printed purchase receipt. Thank you!');
+  });
+
+  useEffect(() => {
+    localStorage.setItem('SmartERP_POSReceiptFooter', receiptFooter);
+  }, [receiptFooter]);
 
   useEffect(() => {
     localStorage.setItem('SmartERP_POSPricingMode', pricingMode);
@@ -76,6 +92,19 @@ export default function POS({ language, currentBranch, userEmail }: POSProps) {
     window.addEventListener('storage', handleStorageChange);
     return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
+
+  useEffect(() => {
+    if (completedOrder) {
+      const qrUrl = `${window.location.origin}/verify?type=receipt&id=${completedOrder.orderId}&invoice=${completedOrder.invoiceNumber}&amount=${completedOrder.grandTotal}&date=${encodeURIComponent(completedOrder.timestamp)}`;
+      db.addQRLog({
+        transactionId: completedOrder.orderId,
+        invoiceNumber: completedOrder.invoiceNumber,
+        type: 'receipt',
+        url: qrUrl,
+        generatedBy: activeCashier || userEmail || 'POS Cashier'
+      });
+    }
+  }, [completedOrder, activeCashier, userEmail]);
 
   // Load products & held cards
   const loadPOSData = () => {
@@ -171,9 +200,9 @@ export default function POS({ language, currentBranch, userEmail }: POSProps) {
   const cartDiscounts = cart.reduce((sum, item) => sum + (item.discount * item.quantity), 0);
   const totalDiscount = cartDiscounts + globalDiscount;
   
-  const taxableAmount = Math.max(0, subTotal - totalDiscount);
-  const taxAmount = (taxableAmount * taxRate) / 100;
-  const grandTotal = taxableAmount + taxAmount;
+  const grandTotal = Math.max(0, subTotal - totalDiscount);
+  const taxAmount = Math.round(grandTotal - (grandTotal / (1 + taxRate / 100)));
+  const taxableAmount = grandTotal - taxAmount;
 
   // Filter Categories
   const categories = ['All', ...Array.from(new Set(products.map((p) => p.category)))];
@@ -327,7 +356,7 @@ export default function POS({ language, currentBranch, userEmail }: POSProps) {
       customerSignature: 'POS Verified',
       sellerSignature: activeCashier,
       verificationId: uniqueVerificationHash,
-      qrCodeUrl: `https://verify-invoice.smartbusinesserp.com/receipt/${uniqueVerificationHash}`
+      qrCodeUrl: `${window.location.origin}/verify?type=receipt&id=${uniqueVerificationHash}&ref=${uniqueVerificationHash}`
     }, userEmail);
 
     setCompletedOrder({
@@ -339,6 +368,18 @@ export default function POS({ language, currentBranch, userEmail }: POSProps) {
       cashierName: activeCashier,
       shiftName: activeShift
     });
+
+    // Auto-trigger Print Preview Modal on Checkout complete for fast physical printing
+    setTimeout(() => {
+      const event = new CustomEvent('open-print-preview', {
+        detail: {
+          elementId: 'receipt-printable-canvas',
+          docTitle: `Receipt_${invoiceNumber || orderId}`,
+          preferredFormat: 'Thermal'
+        }
+      });
+      window.dispatchEvent(event);
+    }, 250);
 
     setCart([]);
     setAmountPaid('');
@@ -387,7 +428,7 @@ export default function POS({ language, currentBranch, userEmail }: POSProps) {
   const sellingStats = getSellingStats();
 
   return (
-    <div className="flex flex-col md:h-[calc(100vh-140px)] lg:h-[calc(100vh-140px)] w-full gap-3 p-1 md:overflow-hidden overflow-y-auto pb-16 md:pb-0">
+    <div className="flex flex-col sm:h-[calc(100vh-140px)] lg:h-[calc(100vh-140px)] w-full gap-3 p-1 sm:overflow-hidden overflow-y-auto pb-16 sm:pb-0">
       
       {/* Top Controller Desk */}
       <div className="flex flex-col sm:flex-row gap-3 items-center justify-between bg-white dark:bg-slate-950 p-3 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm shrink-0">
@@ -462,10 +503,10 @@ export default function POS({ language, currentBranch, userEmail }: POSProps) {
       </div>
 
       {posSection === 'terminal' ? (
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-4 lg:gap-6 flex-1 md:overflow-hidden">
+        <div className="grid grid-cols-1 sm:grid-cols-12 gap-4 lg:gap-6 flex-1 sm:overflow-hidden">
           
           {/* Products Catalog Display - Col 6 on md, 7 on lg */}
-          <div className="md:col-span-6 lg:col-span-7 flex flex-col h-[55vh] md:h-full bg-slate-50 dark:bg-slate-900 rounded-xl p-3 sm:p-4 overflow-hidden border border-slate-200 dark:border-slate-800">
+          <div className="sm:col-span-6 lg:col-span-7 flex flex-col h-[55vh] sm:h-full bg-slate-50 dark:bg-slate-900 rounded-xl p-3 sm:p-4 overflow-hidden border border-slate-200 dark:border-slate-800">
             
             {/* Retail vs Wholesale Pricing Select Tool */}
             <div className="flex bg-slate-100 dark:bg-slate-950 p-1 rounded-xl border border-slate-200/50 dark:border-slate-800/50 gap-1 mb-3 shrink-0">
@@ -622,7 +663,7 @@ export default function POS({ language, currentBranch, userEmail }: POSProps) {
           </div>
 
           {/* POS Cart Summary - Col 6 on md, 5 on lg (Extra Spacious) */}
-          <div className="md:col-span-6 lg:col-span-5 bg-white dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800 flex flex-col h-auto min-h-[45vh] md:h-full overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+          <div className="sm:col-span-6 lg:col-span-5 bg-white dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800 flex flex-col h-auto min-h-[45vh] sm:h-full overflow-hidden shadow-sm hover:shadow-md transition-shadow">
             
             {/* Header summary info - Extra Spacious */}
             <div className="p-6 border-b border-slate-200/60 dark:border-slate-800 bg-indigo-50/20 dark:bg-slate-900/40 flex justify-between items-center shrink-0">
@@ -676,7 +717,7 @@ export default function POS({ language, currentBranch, userEmail }: POSProps) {
                   <div className="flex flex-col items-center justify-center py-2.5 border-t border-dashed mt-2.5 bg-slate-50 dark:bg-slate-900/60 rounded">
                     <div className="bg-white p-1 rounded border shadow-xs">
                       <QRCodeSVG 
-                        value={`https://dukaos.com/verify?type=receipt&id=${completedOrder.orderId}&invoice=${completedOrder.invoiceNumber}&amount=${completedOrder.grandTotal}&date=${encodeURIComponent(completedOrder.timestamp)}`}
+                        value={`${window.location.origin}/verify?type=receipt&id=${completedOrder.orderId}&invoice=${completedOrder.invoiceNumber}&amount=${completedOrder.grandTotal}&date=${encodeURIComponent(completedOrder.timestamp)}`}
                         size={64}
                         level="M"
                         fgColor="#000000"
@@ -686,24 +727,79 @@ export default function POS({ language, currentBranch, userEmail }: POSProps) {
                     <span className="text-[7.5px] uppercase text-slate-400 dark:text-slate-500 mt-1 font-black block tracking-wider">SCAN TO VERIFY TRANS LOG</span>
                   </div>
 
-                  <div className="text-[9px] text-center text-slate-400 mt-2 border-t pt-2 max-w-[200px] mx-auto leading-none">
-                    QR Invoice Verified OK. Powered by Duka OS Software.
+                  <div className="text-[9px] text-center text-slate-400 mt-2 border-t pt-2 max-w-[200px] mx-auto leading-relaxed whitespace-pre-wrap break-words">
+                    {receiptFooter}
                   </div>
                 </div>
 
-                <div className="flex gap-2 justify-end mt-1">
+                {/* Custom Receipt Footer Manager */}
+                <div className="bg-white dark:bg-slate-900 p-3 rounded-lg border border-slate-200 dark:border-slate-800/80 space-y-2 text-slate-700 dark:text-slate-300">
+                  <div className="flex justify-between items-center">
+                    <span className="text-[9.5px] font-black uppercase text-indigo-600 dark:text-indigo-400 tracking-wider">
+                      {language === 'SW' ? 'Mhariri wa Kijachini cha Risiti' : 'Receipt Footer Customizer'}
+                    </span>
+                    <span className="text-[8px] text-slate-400 font-extrabold uppercase">Live-Sync Spool</span>
+                  </div>
+                  
+                  <textarea
+                    rows={2}
+                    value={receiptFooter}
+                    onChange={(e) => setReceiptFooter(e.target.value)}
+                    placeholder={language === 'SW' ? 'Andika ujumbe hapa...' : 'Type receipt footer note here...'}
+                    className="w-full text-[10.5px] p-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded font-mono text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  />
+
+                  {/* Preset Quick Tags */}
+                  <div className="flex flex-wrap gap-1">
+                    <button
+                      type="button"
+                      onClick={() => setReceiptFooter(language === 'SW' ? 'Ahsante kwa kuja! Karibu tena kufanya manunuzi na sisi.' : 'Thank you for your visit! Welcome again to shop with us.')}
+                      className="text-[8.5px] font-bold px-2 py-1 bg-slate-100 dark:bg-slate-800 text-slate-640 dark:text-slate-300 rounded hover:bg-indigo-50 dark:hover:bg-slate-700 transition-all cursor-pointer"
+                    >
+                      🎁 {language === 'SW' ? 'Karibu Tena' : 'Welcome Again'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setReceiptFooter(language === 'SW' ? 'HAKUNA kurudisha au kubadili bidhaa bila risiti halisi ya malipo.' : 'No refunds or exchanges accepted without original printed receipt.')}
+                      className="text-[8.5px] font-bold px-2 py-1 bg-slate-100 dark:bg-slate-800 text-slate-640 dark:text-slate-300 rounded hover:bg-rose-50 dark:hover:bg-slate-705 transition-all cursor-pointer"
+                    >
+                      ⚠️ {language === 'SW' ? 'Sera ya Mrejesho' : 'Returns Policy'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setReceiptFooter(language === 'SW' ? 'Msaada? Wasiliana na duka kwa namba: +255 712 345 678.' : 'Queries? Contact customer checkout helpline: +255 712 345 678.')}
+                      className="text-[8.5px] font-bold px-2 py-1 bg-slate-100 dark:bg-slate-800 text-slate-640 dark:text-slate-300 rounded hover:bg-teal-50 dark:hover:bg-slate-705 transition-all cursor-pointer"
+                    >
+                      📞 {language === 'SW' ? 'Namba ya Msaada' : 'Support line'}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="flex gap-2 justify-end mt-1 flex-wrap">
                   <button 
                     onClick={() => printElement('receipt-printable-canvas', `Receipt_${completedOrder?.invoiceNumber || completedOrder?.orderId || ''}`)} 
-                    className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-1 px-3 rounded flex items-center gap-1.5 leading-none text-[11px]"
+                    className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-1.5 px-3 rounded flex items-center gap-1.5 leading-none text-[11px] cursor-pointer"
                   >
                     <Printer className="h-3 w-3" />
-                    Print / PDF Export
+                    Print / PDF
                   </button>
+
+                  <button 
+                    onClick={() => {
+                      setWhatsappPhone(completedOrder?.customerName === 'Quick Cash Customer' ? '' : '');
+                      setIsWhatsAppPosOpen(true);
+                    }} 
+                    className="bg-teal-600 hover:bg-teal-700 text-white font-bold py-1.5 px-3 rounded flex items-center gap-1.5 leading-none text-[11px] cursor-pointer"
+                  >
+                    <Send className="h-3 w-3" />
+                    WhatsApp
+                  </button>
+
                   <button 
                     onClick={() => setCompletedOrder(null)} 
-                    className="text-emerald-605 hover:underline font-bold text-[11px]"
+                    className="bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-800 dark:text-white font-bold py-1.5 px-3 rounded leading-none text-[11px] cursor-pointer"
                   >
-                    Close Receipt
+                    Close
                   </button>
                 </div>
               </div>
@@ -997,6 +1093,168 @@ export default function POS({ language, currentBranch, userEmail }: POSProps) {
                 </table>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* POS WhatsApp Sharing Modal */}
+      {isWhatsAppPosOpen && completedOrder && (
+        <div className="fixed inset-0 bg-slate-900/85 z-[100] flex items-center justify-center p-4 backdrop-blur-sm animate-fade-in text-xs">
+          <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-md w-full overflow-hidden shadow-2xl text-slate-700 dark:text-slate-300">
+            
+            {/* Header */}
+            <div className="p-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 flex justify-between items-center">
+              <div className="flex items-center gap-2">
+                <span className="p-1.5 bg-emerald-100 dark:bg-emerald-950 text-emerald-600 rounded-lg">
+                  <Send className="h-4 w-4" />
+                </span>
+                <div>
+                  <h3 className="font-extrabold text-slate-900 dark:text-white uppercase tracking-tight text-[11px]">
+                    {language === 'SW' ? 'Tuma Risiti kupitia WhatsApp' : 'Send POS Receipt via WhatsApp'}
+                  </h3>
+                  <p className="text-[9.5px] text-slate-400 font-medium">
+                    Order: <strong className="font-mono text-emerald-500">{completedOrder.invoiceNumber || completedOrder.orderId}</strong>
+                  </p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setIsWhatsAppPosOpen(false)}
+                className="p-1 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-500 transition-colors"
+              >
+                <X className="h-4.5 w-4.5" />
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="p-5 space-y-4">
+              
+              {/* Phone target input */}
+              <div className="space-y-1">
+                <label className="text-[10.5px] font-black uppercase text-slate-400 tracking-wider block">
+                  {language === 'SW' ? 'Namba ya Simu ya Mteja:' : 'Client WhatsApp Line:'}
+                </label>
+                <input
+                  type="tel"
+                  placeholder="e.g. 255712345678"
+                  value={whatsappPhone}
+                  onChange={(e) => setWhatsappPhone(e.target.value)}
+                  className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 dark:text-white tracking-widest focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                />
+                <span className="text-[9px] text-slate-405 block leading-normal italic">
+                  * Pre-seed international formats with country indices (e.g., 255 for TZ: 2557XXXXXXXX).
+                </span>
+              </div>
+
+              {/* Format Select options */}
+              <div className="space-y-1.5">
+                <label className="text-[10.5px] font-black uppercase text-slate-400 tracking-wider block">
+                  {language === 'SW' ? 'Chagua Umbizo la Nyaraka:' : 'Select Share Format:'}
+                </label>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setWhatsappFormat('pdf')}
+                    className={`p-3 rounded-xl border font-bold text-[10.5px] text-center flex flex-col items-center justify-center gap-1 transition-all cursor-pointer ${
+                      whatsappFormat === 'pdf'
+                        ? 'bg-emerald-500/10 border-emerald-500 text-emerald-600 dark:text-emerald-400 font-extrabold shadow-sm'
+                        : 'bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-450 hover:bg-slate-100'
+                    }`}
+                  >
+                    <QrCode className="h-4 w-4" />
+                    <span>{language === 'SW' ? 'Link ya Cheti cha PDF' : 'PDF Certificate Link'}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setWhatsappFormat('summary')}
+                    className={`p-3 rounded-xl border font-bold text-[10.5px] text-center flex flex-col items-center justify-center gap-1 transition-all cursor-pointer ${
+                      whatsappFormat === 'summary'
+                        ? 'bg-emerald-500/10 border-emerald-500 text-emerald-600 dark:text-emerald-400 font-extrabold shadow-sm'
+                        : 'bg-slate-50 dark:bg-slate-900 border-slate-205 dark:border-slate-800 text-slate-450 hover:bg-slate-100'
+                    }`}
+                  >
+                    <FileText className="h-4 w-4" />
+                    <span>{language === 'SW' ? 'Muhtasari wa Maandishi' : 'Text Summary Report'}</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Preview block */}
+              <div className="space-y-1 bg-slate-50 dark:bg-slate-900/60 p-3 rounded-xl border border-slate-200 dark:border-slate-805">
+                <span className="text-[9.5px] font-black uppercase tracking-widest text-slate-400 block pb-1 border-b border-dashed border-slate-200 dark:border-slate-800">
+                  {language === 'SW' ? 'Hakiki Ujumbe Utakaotuma:' : 'Live Message Preview:'}
+                </span>
+                <div className="pt-2 text-[10px] text-slate-600 dark:text-slate-300 font-mono whitespace-pre-wrap leading-relaxed select-text overflow-y-auto max-h-[120px]">
+                  {(() => {
+                    const qrUrl = `${window.location.origin}/verify?type=receipt&id=${completedOrder.orderId}&invoice=${completedOrder.invoiceNumber}&amount=${completedOrder.grandTotal}&date=${encodeURIComponent(completedOrder.timestamp)}`;
+                    if (whatsappFormat === 'pdf') {
+                      return language === 'SW'
+                        ? `*RISITI YAKO YA MALIPO - ${completedOrder.invoiceNumber || completedOrder.orderId.substring(0,8)}*\n\nHabari Mteja,\nHapa kuna risiti yako kielektroniki.\n\n*Kiasi Kilicholipwa:* TZS ${completedOrder.grandTotal.toLocaleString()}\n*Tarehe na Saa:* ${completedOrder.timestamp}\n\nPakua na uhakiki PDF ya risiti yako hapa:\n🔗 ${qrUrl}`
+                        : `*OFFICIAL SALES RECEIPT - ${completedOrder.invoiceNumber || completedOrder.orderId.substring(0,8)}*\n\nHello Valued Client,\nThank you for choosing us. Here is your checkout receipt confirmation.\n\n*Grand Total:* TZS ${completedOrder.grandTotal.toLocaleString()}\n*Timestamp:* ${completedOrder.timestamp}\n\nVerify and download your PDF ticket here:\n🔗 ${qrUrl}`;
+                    } else {
+                      const listItemsText = completedOrder.items?.slice(0, 3).map(it => {
+                        return `• ${it.name} x${it.quantity} = TZS ${(it.sellingPrice * it.quantity).toLocaleString()}`;
+                      }).join('\n') || '';
+                      const dots = (completedOrder.items?.length || 0) > 3 ? '\n• ...' : '';
+
+                      return language === 'SW'
+                        ? `*MUHTASARI WA MAUZI - ${completedOrder.invoiceNumber || completedOrder.orderId.substring(0,8)}*\n\nMteja: ${completedOrder.customerName}\n\n*BIDHAA ZILIZONUNULIWA:*\n${listItemsText}${dots}\n\n*Kiasi Jumla:* TZS ${completedOrder.grandTotal.toLocaleString()}\n*Njia:* ${completedOrder.paymentMethod}\n\n🔗 ${qrUrl}`
+                        : `*SALES RECEIPT SUMMARY - ${completedOrder.invoiceNumber || completedOrder.orderId.substring(0,8)}*\n\nClient: ${completedOrder.customerName}\n\n*ITEMS PURHASED:*\n${listItemsText}${dots}\n\n*Grand Total:* TZS ${completedOrder.grandTotal.toLocaleString()}\n*Method:* ${completedOrder.paymentMethod}\n\n🔗 ${qrUrl}`;
+                    }
+                  })()}
+                </div>
+              </div>
+
+            </div>
+
+            {/* Footer */}
+            <div className="p-4 bg-slate-50 dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 flex justify-end gap-2.5">
+              <button
+                type="button"
+                onClick={() => setIsWhatsAppPosOpen(false)}
+                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-705 text-slate-700 dark:text-slate-300 font-extrabold uppercase rounded-lg tracking-wider cursor-pointer"
+              >
+                {language === 'SW' ? 'Ghairi' : 'Cancel'}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  const cleanedPhone = whatsappPhone.replace(/\D/g, '');
+                  if (!cleanedPhone) {
+                    alert(language === 'SW' ? 'Tafadhali jaza namba sahihi!' : 'Please fill a valid phone line number!');
+                    return;
+                  }
+                  
+                  let fullTextStr = '';
+                  const webOrigin = window.location.origin;
+                  const targetQR = `${webOrigin}/verify?type=receipt&id=${completedOrder.orderId}&invoice=${completedOrder.invoiceNumber}&amount=${completedOrder.grandTotal}&date=${encodeURIComponent(completedOrder.timestamp)}`;
+
+                  if (whatsappFormat === 'pdf') {
+                    fullTextStr = language === 'SW'
+                      ? `*RISITI YAKO YA MALIPO - ${completedOrder.invoiceNumber || completedOrder.orderId.substring(0,8)}*\n\nHabari Mteja wetu upendo,\nHapa kuna risiti ya kielektroniki thabiti ya malipo yako kutoka kwa mfumo mkuu wa biashara yetu.\n\n*Kiasi Kilicholipwa:* TZS ${completedOrder.grandTotal.toLocaleString()}\n*Tarehe na Saa:* ${completedOrder.timestamp}\n\nPakua na uhakiki PDF ya risiti yako kielektroniki hapo chini:\n🔗 ${targetQR}\n\nAsante kwa kutupa nafasi ya kukuhudumia.`
+                      : `*OFFICIAL SALES RECEIPT - ${completedOrder.invoiceNumber || completedOrder.orderId.substring(0,8)}*\n\nHello Valued Client,\nThank you for your business. Here is your checkout receipt transaction confirmation.\n\n*Grand Total:* TZS ${completedOrder.grandTotal.toLocaleString()}\n*Timestamp:* ${completedOrder.timestamp}\n\nVerify and download your PDF ticket here:\n🔗 ${targetQR}\n\nWe look forward to serving you again!`;
+                  } else {
+                    const completeItemsText = completedOrder.items?.map(it => {
+                      return `• ${it.name} x${it.quantity} = TZS ${(it.sellingPrice * it.quantity).toLocaleString()}`;
+                    }).join('\n') || '';
+
+                    fullTextStr = language === 'SW'
+                      ? `*MUHTASARI WA MAUZI - ${completedOrder.invoiceNumber || completedOrder.orderId.substring(0,8)}*\n\nMteja: ${completedOrder.customerName}\n\n*MCHANGANUO WA BIDHAA:*\n${completeItemsText}\n\n*Kiasi Jumla:* TZS ${completedOrder.grandTotal.toLocaleString()}\n*Njia ya Malipo:* ${completedOrder.paymentMethod}\n*Saa na Tarehe:* ${completedOrder.timestamp}\n\nAngalia cheti kielektroniki rasmi hapa:\n🔗 ${targetQR}`
+                      : `*SALES RECEIPT SUMMARY - ${completedOrder.invoiceNumber || completedOrder.orderId.substring(0,8)}*\n\nClient: ${completedOrder.customerName}\n\n*ITEMS PURHASED:*\n${completeItemsText}\n\n*Grand Total:* TZS ${completedOrder.grandTotal.toLocaleString()}\n*Method:* ${completedOrder.paymentMethod}\n*Timestamp:* ${completedOrder.timestamp}\n\nSecure PDF verification link:\n🔗 ${targetQR}`;
+                  }
+
+                  const outboundUrl = `https://api.whatsapp.com/send?phone=${cleanedPhone}&text=${encodeURIComponent(fullTextStr)}`;
+                  window.open(outboundUrl, '_blank');
+                  setIsWhatsAppPosOpen(false);
+                }}
+                className="px-4.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold uppercase rounded-lg flex items-center gap-1.5 tracking-wider cursor-pointer"
+              >
+                <Send className="h-3.5 w-3.5" />
+                <span>{language === 'SW' ? 'Tuma Sasa' : 'Send WhatsApp'}</span>
+              </button>
+            </div>
+
           </div>
         </div>
       )}

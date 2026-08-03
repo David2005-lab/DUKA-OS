@@ -23,6 +23,8 @@ import { Transaction, Product } from '../types';
 import { db } from '../db';
 import { translations } from '../translations';
 import { printElement } from '../utils/print';
+import { ExportButton } from './ExportButton';
+import { exportLedgerToCSV, exportLedgerToPDF } from '../utils/exportHelpers';
 
 interface AccountingProps {
   language: 'EN' | 'SW';
@@ -247,11 +249,17 @@ export default function Accounting({ language, currentBranch }: AccountingProps)
 
             {activeBook === 'ledger' && (
               <div className="space-y-3">
-                <div className="flex justify-between items-center">
+                <div className="flex justify-between items-center gap-2 flex-wrap">
                   <div>
                     <h3 className="font-serif text-lg text-slate-900 dark:text-white">{language === 'SW' ? 'Kumbukumbu Kuu za Fedha (Ledger)' : 'Security General Ledger Records'}</h3>
                     <span className="text-[10px] text-slate-400 font-mono">{language === 'SW' ? 'Njia salama za kufuata miamala na mtiririko' : 'Ledger Double-entry transaction trails'}</span>
                   </div>
+                  <ExportButton
+                    onExportPDF={() => exportLedgerToPDF(transactions, language)}
+                    onExportCSV={() => exportLedgerToCSV(transactions, language)}
+                    language={language}
+                    label={language === 'SW' ? 'Pakua Ledger' : 'Export Ledger'}
+                  />
                 </div>
 
                 <div className="space-y-2 max-h-80 overflow-y-auto">

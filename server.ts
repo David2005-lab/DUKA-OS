@@ -5,15 +5,39 @@
 
 import express from 'express';
 import path from 'path';
-import { fileURLToPath } from 'url';
 import { createServer as createViteServer } from 'vite';
 import { GoogleGenAI } from '@google/genai';
 import dotenv from 'dotenv';
+import nodemailer from 'nodemailer';
 
 dotenv.config();
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+let mailTransporter: any = null;
+
+function getMailTransporter() {
+  if (!mailTransporter) {
+    const host = process.env.SMTP_HOST || 'smtp.gmail.com';
+    const port = parseInt(process.env.SMTP_PORT || '465');
+    const user = process.env.SMTP_USER;
+    const pass = process.env.SMTP_PASS;
+
+    if (!user || !pass) {
+      console.warn('[SMTP WARNING] SMTP_USER or SMTP_PASS environment variables are missing! Email hub will run in simulated dispatch mode.');
+      return null;
+    }
+
+    mailTransporter = nodemailer.createTransport({
+      host,
+      port,
+      secure: port === 465,
+      auth: {
+        user,
+        pass
+      }
+    });
+  }
+  return mailTransporter;
+}
 
 async function startServer() {
   const app = express();
@@ -41,6 +65,79 @@ async function startServer() {
   // API Endpoint: Health Check
   app.get('/api/health', (req, res) => {
     res.json({ status: 'ok', time: new Date().toISOString() });
+  });
+
+  // API Endpoint: Send email notification (real-time notification hub proxy)
+  app.post('/api/send-email', async (req, res) => {
+    const { senderEmail, recipientEmail, subject, body, documentId, language } = req.body;
+
+    if (!recipientEmail || !subject || !body) {
+      return res.status(400).json({
+        success: false,
+        error: language === 'SW' ? 'Tafadhali jaza barua pepe ya mteja, kichwa cha habari, na ujumbe.' : 'Please provide recipient email, subject and message body.'
+      });
+    }
+
+    const transporter = getMailTransporter();
+
+    if (transporter) {
+      try {
+        const senderName = req.body.senderName || 'Smart ERP merchant';
+        await transporter.sendMail({
+          from: `"${senderName}" <${process.env.SMTP_USER}>`,
+          to: recipientEmail,
+          replyTo: senderEmail, // reply-to go directly to merchant email
+          subject: subject,
+          text: body,
+          html: `<div style="font-family: sans-serif; font-size: 14px; line-height: 1.6; color: #333333; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eeeeee; border-radius: 12px; background-color: #ffffff;">
+            <div style="text-align: center; border-bottom: 2px solid #6366f1; padding-bottom: 12px; margin-bottom: 20px;">
+              <h2 style="color: #4f46e5; margin: 0; text-transform: uppercase; font-size: 18px; letter-spacing: 0.5px;">SMART ERP SECURE INVOICING</h2>
+              <span style="font-size: 9px; font-family: monospace; color: #999; letter-spacing: 1px;">ELECTRONIC DOCUMENT DISPATCH NODE</span>
+            </div>
+            <p style="white-space: pre-wrap; margin-bottom: 24px;">${body}</p>
+            <div style="font-size: 11px; color: #999999; text-align: center; border-top: 1px solid #eeeeee; padding-top: 12px; margin-top: 24px;">
+              🛡️ Certified digitally. Replying will route directly to your merchant contact <strong>${senderEmail}</strong>.
+            </div>
+          </div>`
+        });
+
+        console.log(`[SMTP DISPATCH SUCCESS] E-mailed document to ${recipientEmail}`);
+
+        return res.json({
+          success: true,
+          messageId: `smtp-${Date.now()}`,
+          timestamp: new Date().toISOString(),
+          sentVia: senderEmail,
+          carrier: 'SMTP Gateway Server'
+        });
+      } catch (err: any) {
+        console.error('[SMTP DISPATCH ERROR] Failed SMTP transmission: ', err);
+        return res.status(500).json({
+          success: false,
+          error: language === 'SW' ? `Mchakato wa SMTP umeshindwa: ${err.message || err}` : `SMTP transmission failed: ${err.message || err}`
+        });
+      }
+    } else {
+      // Graceful fallback to simulated console print (simulation mode)
+      console.log(`===============================================`);
+      console.log(`[ERP EMAIL HUB DISPATCH] Notification Transmitted (SMTP SIMULATION)`);
+      console.log(`TIMESTAMP   : ${new Date().toISOString()}`);
+      console.log(`SENDER (FROM): ${senderEmail}`);
+      console.log(`RECIPIENT (TO): ${recipientEmail}`);
+      console.log(`SUBJECT     : ${subject}`);
+      console.log(`DOCUMENT ID : ${documentId || 'N/A'}`);
+      console.log(`--- MSG BODY ---`);
+      console.log(body);
+      console.log(`===============================================`);
+
+      return res.json({
+        success: true,
+        messageId: `simulated-${Date.now()}`,
+        timestamp: new Date().toISOString(),
+        sentVia: senderEmail,
+        carrier: 'Simulated Courier (Configure SMTP_USER & SMTP_PASS in settings/domain .env to activate actual transporter)'
+      });
+    }
   });
 
   // API Endpoint: AI Business Analytics & Forecasting Engine
@@ -151,7 +248,7 @@ ${JSON.stringify((invoices || []).map((iv: any) => ({
   } else {
     const distPath = path.join(process.cwd(), 'dist');
     app.use(express.static(distPath));
-    app.get('*all', (req, res) => {
+    app.get('*', (req, res) => {
       res.sendFile(path.join(distPath, 'index.html'));
     });
     console.log('Production: Serving built client files from dist/.');

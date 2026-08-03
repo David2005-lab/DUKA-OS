@@ -9,8 +9,8 @@ export const translations: Record<LanguageCode, Record<string, string>> = {
   EN: {
     noData: 'NO DATA AVAILABLE',
     noDataDesc: 'No business transactions found. Please complete business setup and enter real data to view charts and modules.',
-    setupTitle: 'Enterprise ERP Setup & Verification',
-    setupSubtitle: 'Smart Business ERP Pro Max - Version 4.0',
+    setupTitle: 'DUKA OS Setup & Verification',
+    setupSubtitle: 'DUKA OS Enterprise Suite - Powered by Dev Tek Innovation',
     bizName: 'Business Name',
     bizCategory: 'Business Category',
     tin: 'TIN Number',
@@ -127,8 +127,8 @@ export const translations: Record<LanguageCode, Record<string, string>> = {
   SW: {
     noData: 'HAKUNA DATA INAYOPATIKANA',
     noDataDesc: 'Hakuna miamala ya biashara iliyopatikana. Tafadhali kamilisha usajili wa biashara na uingize takwimu halisi ili kuona chati na moduli.',
-    setupTitle: 'Usajili na Uhakiki wa ERP ya Biashara',
-    setupSubtitle: 'Smart Business ERP Pro Max - Toleo la 4.0',
+    setupTitle: 'Usajili na Uhakiki wa DUKA OS',
+    setupSubtitle: 'DUKA OS Enterprise Suite - Imeendeshwa na Dev Tek Innovation',
     bizName: 'Jina la Biashara',
     bizCategory: 'Kundi la Biashara',
     tin: 'Namba ya TIN',

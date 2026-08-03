@@ -19,12 +19,15 @@ import {
   Layers, 
   Percent,
   Award,
-  Trash2
+  Trash2,
+  Send,
+  Wrench,
+  X
 } from 'lucide-react';
 import { Invoice, Product, Customer, PDFTemplateType, InvoiceStatus } from '../types';
 import { db } from '../db';
 import { translations } from '../translations';
-import { printElement } from '../utils/print';
+import { printElement, printCanvasToPDF, debugPrintableCanvas } from '../utils/print';
 
 interface InvoicingProps {
   language: 'EN' | 'SW';
@@ -42,6 +45,17 @@ export default function Invoicing({ language, currentBranch, userEmail }: Invoic
   const [showCreate, setShowCreate] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
 
+  // WhatsApp states
+  const [isWhatsAppModalOpen, setIsWhatsAppModalOpen] = useState(false);
+  const [whatsappPhone, setWhatsappPhone] = useState('');
+  const [whatsappFormat, setWhatsappFormat] = useState<'pdf' | 'summary'>('pdf');
+
+  useEffect(() => {
+    if (selectedInvoice) {
+      setWhatsappPhone(selectedInvoice.customerDetails?.phone || '');
+    }
+  }, [selectedInvoice]);
+
   const [activeCashier, setActiveCashier] = useState(() => localStorage.getItem('SmartERP_ActiveOperator') || 'Sada Salim');
   const [activeShift, setActiveShift] = useState(() => localStorage.getItem('SmartERP_ActiveShift') || 'Shift ya Asubuhi');
 
@@ -53,9 +67,27 @@ export default function Invoicing({ language, currentBranch, userEmail }: Invoic
     window.addEventListener('storage', handleStorageChange);
     return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
+
+  useEffect(() => {
+    if (selectedInvoice) {
+      const qrUrl = `${window.location.origin}/verify?type=invoice&id=${selectedInvoice.id}&ref=${selectedInvoice.refNumber}&amount=${selectedInvoice.grandTotal}&date=${selectedInvoice.invoiceDate}`;
+      db.addQRLog({
+        transactionId: selectedInvoice.id,
+        invoiceNumber: selectedInvoice.invoiceNumber,
+        type: 'invoice',
+        url: qrUrl,
+        generatedBy: activeCashier || userEmail || 'Invoicing Manager'
+      });
+    }
+  }, [selectedInvoice, activeCashier, userEmail]);
   
   // Choose PDF Template
   const [selectedTemplate, setSelectedTemplate] = useState<PDFTemplateType>('Modern');
+
+  // Printer and PDF Customizer configurations
+  const [printPadding, setPrintPadding] = useState<number>(10);
+  const [inkSaverMode, setInkSaverMode] = useState<boolean>(false);
+  const [showPrinterDebugger, setShowPrinterDebugger] = useState<boolean>(false);
 
   // Customer bindings
   const [selectedCustId, setSelectedCustId] = useState('');
@@ -131,9 +163,9 @@ export default function Invoicing({ language, currentBranch, userEmail }: Invoic
 
     const subTotal = invoiceItems.reduce((sum, item) => sum + (item.product.sellingPrice * item.qty), 0);
     const discountItems = invoiceItems.reduce((sum, item) => sum + (item.discount * item.qty), 0);
-    const taxableAmount = Math.max(0, subTotal - discountItems);
-    const taxAmount = (taxableAmount * 18) / 100;
-    const finalTotal = taxableAmount + taxAmount;
+    const finalTotal = Math.max(0, subTotal - discountItems);
+    const taxAmount = Math.round(finalTotal - (finalTotal / 1.18));
+    const taxableAmount = finalTotal - taxAmount;
 
     const uniqueVerificationHash = `VER-INV-${uniqueId.substring(4)}`;
 
@@ -180,7 +212,7 @@ export default function Invoicing({ language, currentBranch, userEmail }: Invoic
       customerSignature: custSignature || 'Digitally Signed - Customer Webapp',
       sellerSignature: sellerSignature || activeCashier || 'Verified - Business CFO Seal',
       verificationId: uniqueVerificationHash,
-      qrCodeUrl: `https://verify-invoice.smartbusinesserp.com/invoice/${uniqueVerificationHash}`
+      qrCodeUrl: `${window.location.origin}/verify?type=invoice&id=${uniqueVerificationHash}&ref=${uniqueVerificationHash}`
     };
 
     db.addInvoice(newInvoice, userEmail);
@@ -522,14 +554,37 @@ export default function Invoicing({ language, currentBranch, userEmail }: Invoic
                   </select>
                 </div>
 
-                {/* Print PDF triggers & deletion controls */}
+                 {/* Print PDF triggers & deletion controls */}
                 <div className="flex items-center gap-1.5 flex-wrap">
                   <button
                     onClick={() => printElement('printable-area-canvas', `Invoice_${selectedInvoice.invoiceNumber || selectedInvoice.id}`)}
-                    className="bg-indigo-600 hover:bg-indigo-700 text-white font-black py-1.5 px-3 rounded-lg flex items-center gap-1.5 cursor-pointer text-xs"
+                    className="bg-indigo-600 hover:bg-indigo-700 text-white font-black py-1.5 px-3 rounded-lg flex items-center gap-1.5 cursor-pointer text-xs animate-fade-in"
+                    title={language === 'SW' ? 'Chapa hati hii ya PDF ya kiwango cha thabiti' : 'Print this high-fidelity PDF invoice using standard driver'}
                   >
                     <Printer className="h-3.5 w-3.5" />
                     <span>{language === 'SW' ? 'Chapa / PDF' : 'Print / PDF'}</span>
+                  </button>
+
+                  <button
+                    onClick={() => setShowPrinterDebugger(!showPrinterDebugger)}
+                    className={`font-black py-1.5 px-3 rounded-lg flex items-center gap-1 cursor-pointer text-xs transition-colors ${
+                      showPrinterDebugger 
+                        ? 'bg-amber-600 hover:bg-amber-700 text-white' 
+                        : 'bg-slate-200 dark:bg-slate-800 hover:bg-slate-350 hover:bg-slate-300 text-slate-700 dark:text-slate-300'
+                    }`}
+                    title={language === 'SW' ? 'Fungua daktari wa utatuzi wa matatizo ya chapa' : 'Launch custom printer console & debug suite'}
+                  >
+                    <Wrench className="h-3.5 w-3.5" />
+                    <span>{language === 'SW' ? 'Marekebisho' : 'Debug Printer'}</span>
+                  </button>
+
+                  <button
+                    onClick={() => setIsWhatsAppModalOpen(true)}
+                    className="bg-emerald-600 hover:bg-emerald-700 text-white font-black py-1.5 px-3 rounded-lg flex items-center gap-1.5 cursor-pointer text-xs"
+                    title={language === 'SW' ? 'Tuma kwa mteja kupitia WhatsApp' : 'Dispatch invoice via WhatsApp'}
+                  >
+                    <Send className="h-3.5 w-3.5" />
+                    <span>WhatsApp</span>
                   </button>
 
                   <button
@@ -552,8 +607,145 @@ export default function Invoicing({ language, currentBranch, userEmail }: Invoic
                 </div>
               </div>
 
+              {/* LIVE PRINTER DIAGNOSTICS & TUNING CONSOLE PANEL */}
+              {showPrinterDebugger && (() => {
+                const diag = debugPrintableCanvas();
+                return (
+                  <div className="bg-amber-500/5 dark:bg-amber-950/10 border border-amber-500/20 rounded-xl p-4 mb-4 select-none animate-fade-in text-xs no-print">
+                    <div className="flex items-center justify-between border-b border-amber-500/20 pb-2 mb-3">
+                      <div className="font-extrabold text-amber-850 text-amber-800 dark:text-amber-400 flex items-center gap-2 text-sm uppercase">
+                        <Wrench className="h-4 w-4 text-amber-600 animate-spin-slow" />
+                        <span>SMART PRINTER RESOLUTION CONSOLE & DIAGNOSTICS</span>
+                      </div>
+                      <button 
+                        onClick={() => setShowPrinterDebugger(false)} 
+                        className="text-amber-700 dark:text-amber-500 hover:text-amber-900 font-bold p-1 rounded-full cursor-pointer hover:bg-amber-500/10"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
+
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                      {/* Tuner configurations */}
+                      <div className="bg-white dark:bg-slate-950/40 p-3 rounded-lg border border-slate-200 dark:border-slate-800 space-y-3">
+                        <h4 className="font-extrabold text-slate-700 dark:text-slate-300 border-b pb-1 text-[10px] tracking-wider uppercase">1. PRINT TUNING CONTROLS</h4>
+                        
+                        {/* Margins tuning slider */}
+                        <div className="space-y-1">
+                          <div className="flex justify-between items-center font-bold text-slate-500 text-[10px]">
+                            <span>CUSTOM MARGIN RESIZE:</span>
+                            <span className="text-indigo-600 dark:text-indigo-400 font-black">{printPadding} mm</span>
+                          </div>
+                          <input 
+                            type="range" 
+                            min="0" 
+                            max="25" 
+                            value={printPadding} 
+                            onChange={(e) => setPrintPadding(parseInt(e.target.value))} 
+                            className="w-full accent-indigo-600 cursor-pointer h-1.5 bg-slate-100 dark:bg-slate-800 rounded-lg"
+                          />
+                        </div>
+
+                        {/* Ink conservation checkbox */}
+                        <label className="flex items-start gap-2.5 cursor-pointer pt-1">
+                          <input 
+                            type="checkbox" 
+                            checked={inkSaverMode} 
+                            onChange={(e) => setInkSaverMode(e.target.checked)} 
+                            className="accent-indigo-600 rounded mt-0.5" 
+                          />
+                          <div className="text-[10px] text-slate-600 dark:text-slate-400 leading-tight">
+                            <span className="font-extrabold block text-slate-700 dark:text-slate-200">ECO INK SAVER MODE</span>
+                            <span>Automatically strips heavy dark backgrounds, forcing high-contrast grayscale for printer ecology.</span>
+                          </div>
+                        </label>
+                      </div>
+
+                      {/* Diagnostic criteria list */}
+                      <div className="bg-white dark:bg-slate-950/40 p-3 rounded-lg border border-slate-200 dark:border-slate-800 lg:col-span-2 space-y-3">
+                        <h4 className="font-extrabold text-slate-700 dark:text-slate-300 border-b pb-1 text-[10px] tracking-wider uppercase">2. LIVE PRINTER COMPLIANCE CHECKLIST</h4>
+                        
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px] leading-relaxed">
+                          <div className="flex items-start gap-1.5">
+                            <span className={diag.canvasFound ? "text-emerald-500 font-bold" : "text-rose-500 font-bold"}>
+                              {diag.canvasFound ? "✓" : "✗"}
+                            </span>
+                            <div>
+                              <span className="font-bold block">DOM Print-Canvas Presence</span>
+                              <span className="text-[10px] text-slate-400">{diag.canvasFound ? "Success: #printable-area-canvas ready for spool" : "Error: Cannot resolve printing element"}</span>
+                            </div>
+                          </div>
+
+                          <div className="flex items-start gap-1.5">
+                            <span className="text-indigo-600 font-bold">●</span>
+                            <div>
+                              <span className="font-bold block">Document Complexity Density</span>
+                              <span className="text-[10px] text-slate-400">Contains {diag.elementCount} active markup vector elements</span>
+                            </div>
+                          </div>
+
+                          <div className="flex items-start gap-1.5">
+                            <span className={diag.hasDarkBackground ? "text-amber-500 font-bold" : "text-emerald-500 font-bold"}>
+                              {diag.hasDarkBackground ? "⚠" : "✓"}
+                            </span>
+                            <div>
+                              <span className="font-bold block">Ink Volume Audit</span>
+                              <span className="text-[10px] text-slate-400">{diag.hasDarkBackground ? "Alert: High ink-dump slate fields found" : "Optimized: Clean bright print balance"}</span>
+                            </div>
+                          </div>
+
+                          <div className="flex items-start gap-1.5">
+                            <span className="text-emerald-600 font-bold">📄</span>
+                            <div>
+                              <span className="font-bold block">Expected Page Count</span>
+                              <span className="text-[10px] text-slate-400">Fits inside ~{diag.estimatedPages} standard A4 printable sheets</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="pt-2 border-t border-slate-100 dark:border-slate-800">
+                          <span className="font-extrabold text-[9px] uppercase tracking-widest block text-slate-400 mb-1">RECOMMENDED REMEDIATION ACTIONS:</span>
+                          <ul className="list-disc pl-4 space-y-0.5 text-[10px] text-slate-600 dark:text-slate-300 italic">
+                            {diag.recommendations.map((rec, rIdx) => (
+                              <li key={`rec-${rIdx}`}>{rec}</li>
+                            ))}
+                            {diag.issues.map((iss, iIdx) => (
+                              <li key={`iss-${iIdx}`} className="text-amber-600 dark:text-amber-400 font-semibold">{iss}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* Diagnostic Actions row */}
+                    <div className="mt-3 pt-3 border-t border-amber-500/15 flex flex-wrap justify-between items-center gap-2">
+                      <span className="text-[10px] text-slate-400 italic">Verify your layout in real-time. Use 'A4 simulated bounds' to trace dimensions.</span>
+                      <div className="flex gap-2">
+                        <button 
+                          onClick={() => printElement('printable-area-canvas', `Invoice_${selectedInvoice.invoiceNumber || selectedInvoice.id}`)}
+                          className="bg-slate-500 hover:bg-slate-650 hover:bg-slate-600 text-white px-3 py-1.5 rounded-lg font-bold text-[10px] tracking-wider uppercase cursor-pointer"
+                        >
+                          Raw Spooler Test
+                        </button>
+                        <button 
+                          onClick={() => printCanvasToPDF(`Invoice_${selectedInvoice.invoiceNumber || selectedInvoice.id}`, printPadding, inkSaverMode)}
+                          className="bg-indigo-650 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-1.5 rounded-lg font-extrabold text-[10px] tracking-wider uppercase cursor-pointer flex items-center gap-1.5 shadow"
+                        >
+                          <Printer className="h-3.5 w-3.5" />
+                          <span>Trigger PDF Rendering</span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
+
               {/* ACTIVE RENDERED INVOICE VIEW TEMPLATE SHEET */}
-              <div className={tStyles.card} id="printable-area-canvas">
+              <div 
+                className={`${tStyles.card} ${showPrinterDebugger ? "ring-2 ring-amber-500 border-amber-400 relative before:content-['A4_SIMULATED_PAGE_BOUNDS'] before:absolute before:top-2 before:right-2 before:text-[8px] before:font-bold before:bg-amber-100 before:text-amber-800 before:px-1.5 before:py-0.5 before:rounded before:z-50 shadow-2xl transition-all" : ""}`} 
+                id="printable-area-canvas"
+                style={showPrinterDebugger ? { padding: `${printPadding}mm` } : undefined}
+              >
                 
                 {/* Visual Label Branding row */}
                 <div className="flex justify-between items-start border-b pb-6 mb-6 border-slate-200">
@@ -572,7 +764,7 @@ export default function Invoicing({ language, currentBranch, userEmail }: Invoic
                     <div className="bg-slate-50 dark:bg-slate-900 p-2 border rounded-lg flex items-center gap-2 text-stone-900 dark:text-stone-100">
                       <div className="bg-white p-1 rounded border">
                         <QRCodeSVG 
-                          value={`https://dukaos.com/verify?type=invoice&id=${selectedInvoice.id}&ref=${selectedInvoice.refNumber}&amount=${selectedInvoice.grandTotal}&date=${selectedInvoice.invoiceDate}`}
+                          value={`${window.location.origin}/verify?type=invoice&id=${selectedInvoice.id}&ref=${selectedInvoice.refNumber}&amount=${selectedInvoice.grandTotal}&date=${selectedInvoice.invoiceDate}`}
                           size={56}
                           level="M"
                           fgColor="#1e1b4b"
@@ -710,6 +902,171 @@ export default function Invoicing({ language, currentBranch, userEmail }: Invoic
         </div>
 
       </div>
+
+      {/* WhatsApp Sharing Dialog Modal */}
+      {isWhatsAppModalOpen && selectedInvoice && (
+        <div className="fixed inset-0 bg-slate-900/85 z-[100] flex items-center justify-center p-4 backdrop-blur-sm animate-fade-in text-xs">
+          <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-md w-full overflow-hidden shadow-2xl">
+            
+            {/* Modal Header */}
+            <div className="p-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 flex justify-between items-center">
+              <div className="flex items-center gap-2">
+                <span className="p-1.5 bg-emerald-100 dark:bg-emerald-950 text-emerald-600 rounded-lg">
+                  <Send className="h-4 w-4" />
+                </span>
+                <div>
+                  <h3 className="font-extrabold text-slate-900 dark:text-white uppercase tracking-tight text-[11px]">
+                    {language === 'SW' ? 'Tuma Kupitia WhatsApp' : 'Dispatch via WhatsApp'}
+                  </h3>
+                  <p className="text-[9.5px] text-slate-400 font-medium">
+                    Invoice: <strong className="font-mono text-emerald-500">{selectedInvoice.invoiceNumber}</strong>
+                  </p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setIsWhatsAppModalOpen(false)}
+                className="p-1 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-500 transition-colors"
+              >
+                <X className="h-4.5 w-4.5" />
+              </button>
+            </div>
+
+            {/* Modal Content */}
+            <div className="p-5 space-y-4">
+              
+              {/* Phone target input */}
+              <div className="space-y-1">
+                <label className="text-[10.5px] font-black uppercase text-slate-400 tracking-wider block">
+                  {language === 'SW' ? 'Nambari ya WhatsApp ya Mteja:' : 'Client WhatsApp Line:'}
+                </label>
+                <input
+                  type="tel"
+                  placeholder="e.g. 255712345678"
+                  value={whatsappPhone}
+                  onChange={(e) => setWhatsappPhone(e.target.value)}
+                  className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 dark:text-white tracking-widest focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                />
+                <span className="text-[9px] text-slate-405 block leading-normal italic">
+                  * Pre-seed international formats with country indices (e.g., 255 for TZ: 2557XXXXXXXX).
+                </span>
+              </div>
+
+              {/* Format Select buttons */}
+              <div className="space-y-1.5">
+                <label className="text-[10.5px] font-black uppercase text-slate-400 tracking-wider block">
+                  {language === 'SW' ? 'Chagua Umbizo la Nyaraka:' : 'Select Share Format:'}
+                </label>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setWhatsappFormat('pdf')}
+                    className={`p-3 rounded-xl border font-bold text-[10.5px] text-center flex flex-col items-center justify-center gap-1 transition-all cursor-pointer ${
+                      whatsappFormat === 'pdf'
+                        ? 'bg-emerald-500/10 border-emerald-500 text-emerald-600 dark:text-emerald-400 font-extrabold shadow-sm'
+                        : 'bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-450 hover:bg-slate-100'
+                    }`}
+                  >
+                    <QrCode className="h-4 w-4" />
+                    <span>{language === 'SW' ? 'Link ya Cheti cha PDF' : 'PDF Certificate Link'}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setWhatsappFormat('summary')}
+                    className={`p-3 rounded-xl border font-bold text-[10.5px] text-center flex flex-col items-center justify-center gap-1 transition-all cursor-pointer ${
+                      whatsappFormat === 'summary'
+                        ? 'bg-emerald-500/10 border-emerald-500 text-emerald-600 dark:text-emerald-400 font-extrabold shadow-sm'
+                        : 'bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-450 hover:bg-slate-100'
+                    }`}
+                  >
+                    <FileText className="h-4 w-4" />
+                    <span>{language === 'SW' ? 'Muhtasari wa Maandishi' : 'Text Summary Report'}</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Preview block */}
+              <div className="space-y-1 bg-slate-50 dark:bg-slate-900/60 p-3 rounded-xl border border-slate-200 dark:border-slate-805">
+                <span className="text-[9.5px] font-black uppercase tracking-widest text-slate-400 block pb-1 border-b border-dashed border-slate-200 dark:border-slate-800">
+                  {language === 'SW' ? 'Hakiki Ujumbe Utakaotuma:' : 'Live Message Preview:'}
+                </span>
+                <div className="pt-2 text-[10px] text-slate-600 dark:text-slate-300 font-mono whitespace-pre-wrap leading-relaxed select-text overflow-y-auto max-h-[120px]">
+                  {(() => {
+                    const qrUrl = `${window.location.origin}/verify?type=invoice&ref=${selectedInvoice.refNumber || selectedInvoice.id}&amount=${selectedInvoice.grandTotal}&date=${selectedInvoice.invoiceDate}&client=${encodeURIComponent(selectedInvoice.customerDetails?.fullName || '')}`;
+                    if (whatsappFormat === 'pdf') {
+                      return language === 'SW'
+                        ? `*ANKARA ILIYOTHIBITISHWA - ${selectedInvoice.invoiceNumber}*\n\nHabari ${selectedInvoice.customerDetails?.fullName || 'Mteja'},\nHapa kuna ankara yako thabiti iliyosajiliwa kielektroniki.\n\n*Kiasi:* TZS ${selectedInvoice.grandTotal.toLocaleString()}\n*Tarehe:* ${selectedInvoice.dueDate}\n\nPakua au Hakiki nyaraka yako ya PDF hapa:\n🔗 ${qrUrl}`
+                        : `*OFFICIAL REGISTERED INVOICE - ${selectedInvoice.invoiceNumber}*\n\nHello ${selectedInvoice.customerDetails?.fullName || 'Valued Client'},\nPlease find your secure digital invoice details listed below.\n\n*Total Due:* TZS ${selectedInvoice.grandTotal.toLocaleString()}\n*Due Date:* ${selectedInvoice.dueDate}\n\nVerify and download your PDF statement here:\n🔗 ${qrUrl}`;
+                    } else {
+                      const listItemsText = selectedInvoice.items.slice(0, 3).map(it => {
+                        const prod = products.find(p=>p.id === it.productId);
+                        return `• ${prod ? prod.name : 'Item'} x${it.qty} = TZS ${(it.sellingPrice * it.qty).toLocaleString()}`;
+                      }).join('\n');
+                      const dots = selectedInvoice.items.length > 3 ? '\n• ...' : '';
+
+                      return language === 'SW'
+                        ? `*MUHTASARI WA ANKARA - ${selectedInvoice.invoiceNumber}*\n\nMteja: ${selectedInvoice.customerDetails?.fullName || 'Mteja'}\n\n*MCHANGANUO WA BIDHAA:*\n${listItemsText}${dots}\n\n*Jumla Kuu:* TZS ${selectedInvoice.grandTotal.toLocaleString()}\n*Hali:* ${selectedInvoice.status}\n\n🔗 ${qrUrl}`
+                        : `*INVOICE SUMMARY - ${selectedInvoice.invoiceNumber}*\n\nClient: ${selectedInvoice.customerDetails?.fullName || 'Client'}\n\n*ITEMS PURHASED:*\n${listItemsText}${dots}\n\n*Grand Total:* TZS ${selectedInvoice.grandTotal.toLocaleString()}\n*Status:* ${selectedInvoice.status}\n\n🔗 ${qrUrl}`;
+                    }
+                  })()}
+                </div>
+              </div>
+
+            </div>
+
+            {/* Modal Footer actions */}
+            <div className="p-4 bg-slate-50 dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 flex justify-end gap-2.5">
+              <button
+                type="button"
+                onClick={() => setIsWhatsAppModalOpen(false)}
+                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-705 text-slate-700 dark:text-slate-300 font-extrabold uppercase rounded-lg tracking-wider cursor-pointer"
+              >
+                {language === 'SW' ? 'Ghairi' : 'Cancel'}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  const cleanedPhone = whatsappPhone.replace(/\D/g, '');
+                  if (!cleanedPhone) {
+                    alert(language === 'SW' ? 'Tafadhali jaza namba sahihi!' : 'Please fill a valid phone line number!');
+                    return;
+                  }
+                  
+                  // Construct dynamic payload
+                  let fullTextStr = '';
+                  const webOrigin = window.location.origin;
+                  const targetQR = `${webOrigin}/verify?type=invoice&ref=${selectedInvoice.refNumber || selectedInvoice.id}&amount=${selectedInvoice.grandTotal}&date=${selectedInvoice.invoiceDate}&client=${encodeURIComponent(selectedInvoice.customerDetails?.fullName || '')}`;
+
+                  if (whatsappFormat === 'pdf') {
+                    fullTextStr = language === 'SW'
+                      ? `*ANKARA ILIYOTHIBITISHWA - ${selectedInvoice.invoiceNumber}*\n\nHabari ${selectedInvoice.customerDetails?.fullName || 'Mteja'},\nHapa kuna ankara yako thabiti iliyosajiliwa kielektroniki kwenye mfumo wetu mkuu wa biashara.\n\n*Kiasi:* TZS ${selectedInvoice.grandTotal.toLocaleString()}\n*Tarehe ya Malipo:* ${selectedInvoice.dueDate}\n\nPakua nauhakiki nyaraka yako ya PDF hapo chini:\n🔗 ${targetQR}\n\nAsante kwa kufanya biashara nasi.`
+                      : `*OFFICIAL REGISTERED INVOICE - ${selectedInvoice.invoiceNumber}*\n\nHello ${selectedInvoice.customerDetails?.fullName || 'Valued Client'},\nPlease find your secure digital invoice details listed below.\n\n*Total Due:* TZS ${selectedInvoice.grandTotal.toLocaleString()}\n*Due Date:* ${selectedInvoice.dueDate}\n\nVerify and download your PDF statement here:\n🔗 ${targetQR}\n\nThank you for choosing us!`;
+                  } else {
+                    const completeItemsText = selectedInvoice.items.map(it => {
+                      const prod = products.find(p=>p.id === it.productId);
+                      return `• ${prod ? prod.name : 'Bidhaa'} x${it.qty} = TZS ${(it.sellingPrice * it.qty).toLocaleString()}`;
+                    }).join('\n');
+
+                    fullTextStr = language === 'SW'
+                      ? `*MUHTASARI WA ANKARA - ${selectedInvoice.invoiceNumber}*\n\nMteja: ${selectedInvoice.customerDetails?.fullName || 'Mteja'}\nNamba ya Simu: ${selectedInvoice.customerDetails?.phone || 'Hajajaza'}\n\n*MCHANGANUO WA BIDHAA:*\n${completeItemsText}\n\n*Jumla Kuu:* TZS ${selectedInvoice.grandTotal.toLocaleString()}\n*Hali Malipo:* ${selectedInvoice.status}\n\nAngalia PDF kielektroniki:\n🔗 ${targetQR}`
+                      : `*INVOICE SUMMARY - ${selectedInvoice.invoiceNumber}*\n\nClient: ${selectedInvoice.customerDetails?.fullName || 'Client'}\nPhone Contact: ${selectedInvoice.customerDetails?.phone || 'N/A'}\n\n*ITEMS PURCHASED:*\n${completeItemsText}\n\n*Grand Total:* TZS ${selectedInvoice.grandTotal.toLocaleString()}\n*Status:* ${selectedInvoice.status}\n\nSecure PDF verification link:\n🔗 ${targetQR}`;
+                  }
+
+                  const outboundWhatsAppUrl = `https://api.whatsapp.com/send?phone=${cleanedPhone}&text=${encodeURIComponent(fullTextStr)}`;
+                  window.open(outboundWhatsAppUrl, '_blank');
+                  setIsWhatsAppModalOpen(false);
+                }}
+                className="px-4.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold uppercase rounded-lg flex items-center gap-1.5 tracking-wider cursor-pointer"
+              >
+                <Send className="h-3.5 w-3.5" />
+                <span>{language === 'SW' ? 'Tuma Sasa' : 'Send Whatsapp'}</span>
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
 
     </div>
   );
